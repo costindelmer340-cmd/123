@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="card">
+    <view class="title">订单售后与客服咨询</view>
+    <view class="muted">统一查看外部订单、提交售后、跟进处理进度。</view>
+    <button class="primary-btn" bindtap="goOrders">查看订单</button>
+  </view>
+  <view class="card">
+    <view>抖音订单同步</view>
+    <view class="muted">已支持售后、物流、评价基础流程</view>
+  </view>
+  <view class="card">
+    <view>实时客服</view>
+    <view class="muted">AI 先接待，再转人工处理</view>
+  </view>
+</view>

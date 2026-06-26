@@ -1,0 +1,9 @@
+<view class="page">
+  <view class="card login-card">
+    <view class="title">手机号登录</view>
+    <view class="muted">当前先使用演示登录，后续替换为真实手机号验证码登录。</view>
+    <input class="input" placeholder="请输入手机号" bindinput="onPhoneInput" />
+    <input class="input" placeholder="请输入验证码" bindinput="onCodeInput" />
+    <button class="primary-btn" bindtap="onLogin">登录进入</button>
+  </view>
+</view>

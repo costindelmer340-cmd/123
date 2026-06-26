@@ -1,0 +1,7 @@
+<view class="page">
+  <view class="card">
+    <view class="title">AS202606250001</view>
+    <view wx:for="{{progress}}" wx:key="*this" class="muted">{{index + 1}}. {{item}}</view>
+    <button class="primary-btn">补充凭证</button>
+  </view>
+</view>

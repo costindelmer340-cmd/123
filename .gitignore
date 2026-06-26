@@ -1,0 +1,62 @@
+# Operating system
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Java / Spring Boot
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/*.iml
+backend/.idea/
+backend/.settings/
+backend/.classpath
+backend/.project
+
+# Node / Vue
+frontend/**/node_modules/
+frontend/**/dist/
+frontend/**/.vite/
+frontend/**/.turbo/
+frontend/**/coverage/
+frontend/**/*.local
+frontend/**/tsconfig.tsbuildinfo
+
+# WeChat mini program
+frontend/consumer-miniapp/miniprogram_npm/
+frontend/consumer-miniapp/project.private.config.json
+frontend/consumer-miniapp/.hbuilderx/
+
+# Python / FastAPI
+ai-service/.venv/
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/**/__pycache__/
+ai-service/.pytest_cache/
+ai-service/.mypy_cache/
+ai-service/.ruff_cache/
+ai-service/*.pyc
+
+# Database and generated files
+database/*.bak
+database/*.dump
+database/*.sql.gz
+
+# Deployment
+deploy/.data/
+deploy/mysql-data/
+deploy/redis-data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,28 @@
+{
+  "pages": [
+    "pages/login/index",
+    "pages/home/index",
+    "pages/order/index",
+    "pages/aftersale/index",
+    "pages/chat/index",
+    "pages/user/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "售后服务中心",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f6f8fb"
+  },
+  "tabBar": {
+    "color": "#667085",
+    "selectedColor": "#1f7ae0",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/home/index", "text": "首页" },
+      { "pagePath": "pages/order/index", "text": "订单" },
+      { "pagePath": "pages/aftersale/index", "text": "售后" },
+      { "pagePath": "pages/chat/index", "text": "客服" },
+      { "pagePath": "pages/user/index", "text": "我的" }
+    ]
+  }
+}

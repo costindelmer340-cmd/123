@@ -1,0 +1,10 @@
+.git
+.agents
+.codex
+**/node_modules
+**/dist
+**/target
+**/__pycache__
+**/*.pyc
+*.log
+frontend/consumer-miniapp

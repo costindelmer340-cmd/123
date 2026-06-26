@@ -1,0 +1,7 @@
+<view class="page">
+  <view wx:for="{{orders}}" wx:key="no" class="card">
+    <view class="title">{{item.title}}</view>
+    <view class="muted">{{item.no}} · {{item.status}}</view>
+    <view class="muted">售后：{{item.afterSale}}</view>
+  </view>
+</view>

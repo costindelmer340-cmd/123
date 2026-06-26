@@ -1,0 +1,7 @@
+<view class="page">
+  <view class="card">
+    <view class="title">consumer_demo</view>
+    <view class="muted">已绑定：抖音商城</view>
+    <view class="muted">最近咨询：2026-06-25 09:35:00</view>
+  </view>
+</view>

@@ -8,7 +8,7 @@
     <view
       wx:for="{{platforms}}"
       wx:key="name"
-      class="platform-card"
+      class="platform-card {{item.wide ? 'platform-card-wide' : ''}}"
       bindtap="bindPlatform"
       data-name="{{item.name}}"
     >
@@ -17,7 +17,21 @@
         <view class="sub-title">{{item.name}}</view>
         <view class="muted">{{item.status}}</view>
       </view>
+      <button wx:if="{{item.name === '20商城'}}" class="bind-btn" catchtap="bindPlatform" data-name="{{item.name}}">绑定</button>
       <view class="arrow">›</view>
+    </view>
+  </view>
+
+  <view wx:if="{{twentyMallDialogVisible}}" class="dialog-mask">
+    <view class="dialog">
+      <view class="sub-title">绑定20商城账号</view>
+      <view class="muted">消费者演示账号：20230140 / 123456</view>
+      <input class="dialog-input" placeholder="请输入20商城账号" value="{{twentyMallAccount}}" bindinput="onTwentyMallAccountInput" />
+      <input class="dialog-input" password placeholder="请输入密码" value="{{twentyMallPassword}}" bindinput="onTwentyMallPasswordInput" />
+      <view class="dialog-actions">
+        <button class="cancel-btn" bindtap="closeTwentyMallDialog">取消</button>
+        <button class="confirm-btn" bindtap="submitTwentyMallBind">确认绑定</button>
+      </view>
     </view>
   </view>
 </view>

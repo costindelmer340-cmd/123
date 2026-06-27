@@ -1,18 +1,30 @@
 <view class="page">
   <view class="page-title">我的订单</view>
-  <view wx:for="{{orders}}" wx:key="no" class="order-card" bindtap="goDetail" data-no="{{item.no}}">
-    <image class="product-thumb" src="{{item.image}}" mode="aspectFill" />
-    <view class="order-info">
-      <view class="between">
-        <view class="order-title">{{item.title}}</view>
-        <view class="price">￥{{item.price}}</view>
-      </view>
-      <view class="muted">{{item.no}} · {{item.status}}</view>
-      <view class="muted">{{item.spec}}</view>
-      <view class="order-bottom">
-        <view class="tag">售后：{{item.afterSale}}</view>
-        <view class="detail-link">查看详情 ›</view>
+  <view wx:if="{{!platformBound}}" class="empty-card">
+    <view class="empty-title">请先绑定电商平台</view>
+    <view class="empty-text">绑定 20商城 或其他平台账号后，这里会同步展示对应订单。</view>
+    <button class="empty-btn" bindtap="goBind">去绑定</button>
+  </view>
+  <block wx:for="{{orderGroups}}" wx:key="accountNo" wx:for-item="group">
+    <view class="source-banner">
+      <view class="source-title">{{group.platform}}</view>
+      <view class="source-account">账号：{{group.accountNo}}</view>
+    </view>
+    <view wx:if="{{!group.orders.length}}" class="empty-mini">该账号暂无同步订单</view>
+    <view wx:for="{{group.orders}}" wx:key="no" wx:for-item="item" class="order-card" bindtap="goDetail" data-no="{{item.no}}">
+      <image class="product-thumb" src="{{item.image}}" mode="aspectFill" />
+      <view class="order-info">
+        <view class="between">
+          <view class="order-title">{{item.title}}</view>
+          <view class="price">￥{{item.price}}</view>
+        </view>
+        <view class="muted">{{item.no}} · {{item.status}}</view>
+        <view class="muted">{{item.spec}}</view>
+        <view class="order-bottom">
+          <view class="tag">售后：{{item.afterSale}}</view>
+          <view class="detail-link">查看详情 ›</view>
+        </view>
       </view>
     </view>
-  </view>
+  </block>
 </view>

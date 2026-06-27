@@ -29,7 +29,7 @@
     <view class="between">
       <view>
         <view class="sub-title">地址管理</view>
-        <view class="muted address">{{profile.address}}</view>
+        <view class="muted address">{{profile.address || '暂未添加地址'}}</view>
       </view>
       <view class="arrow">›</view>
     </view>

@@ -1,4 +1,11 @@
 <view class="page">
+  <view wx:if="{{!platformBound}}" class="empty-card">
+    <view class="empty-title">请先绑定电商平台</view>
+    <view class="empty-text">绑定平台账号后，客服会根据对应订单进行 AI 或人工对话。</view>
+    <button class="empty-btn" bindtap="goBind">去绑定</button>
+  </view>
+
+  <block wx:else>
   <view class="consult-order card" bindtap="goOrderDetail">
     <image class="consult-thumb" src="{{consultingOrder.image}}" mode="aspectFill" />
     <view class="consult-info">
@@ -39,4 +46,5 @@
     <input value="{{inputValue}}" bindinput="onInput" placeholder="输入消息，发送“转人工”可接入人工客服" />
     <button class="send-btn" bindtap="sendMessage">发送</button>
   </view>
+  </block>
 </view>

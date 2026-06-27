@@ -1,31 +1,106 @@
-import { orders } from "../../utils/mock"
+import { getTwentyMallBindings } from "../../utils/auth"
 
-const chatMap = {
-  DY202606250001: [
-    { role: "user", speaker: "我", content: "手机屏幕有划痕，可以退货吗？" },
-    { role: "ai", speaker: "AI客服", content: "可以先上传商品照片和包装照片，我会根据售后规则帮你判断。" },
-    { role: "user", speaker: "我", content: "退款进度在哪里看？" },
-    { role: "ai", speaker: "AI客服", content: "你可以在订单详情中查看售后进度，也可以告诉我订单号。" }
-  ],
-  DY202606250002: [
-    { role: "ai", speaker: "AI客服", content: "当前咨询的是 Breeze 声学专营店订单，耳机类售后可查询退换货和物流进度。" }
-  ]
+const API_BASE = "http://localhost:8080/api/demo-chat"
+
+function normalizeMessage(item) {
+  const senderType = item.senderType || "AI"
+  const isUser = senderType === "CONSUMER"
+  const isStaff = senderType === "STAFF"
+  return {
+    id: item.id,
+    role: isUser ? "user" : (isStaff ? "staff" : "ai"),
+    speaker: isUser ? "我" : (isStaff ? "人工客服" : "AI客服"),
+    content: item.content
+  }
 }
 
 Page({
   data: {
     inputValue: "",
     mode: "AI",
-    orders,
-    activeOrderNo: orders[0].no,
-    consultingOrder: orders[0],
-    chatMap,
-    messages: chatMap[orders[0].no]
+    platformBound: false,
+    orders: [],
+    activeOrderNo: "",
+    consultingOrder: null,
+    messages: []
+  },
+  onLoad() {
+    this.applyPlatformBinding()
+  },
+  onShow() {
+    this.applyPlatformBinding()
+    this.startPolling()
+  },
+  onHide() {
+    this.stopPolling()
+  },
+  onUnload() {
+    this.stopPolling()
   },
   onInput(e) {
     this.setData({ inputValue: e.detail.value })
   },
+  applyPlatformBinding() {
+    const bindings = getTwentyMallBindings()
+    if (!bindings.length) {
+      this.setData({
+        platformBound: false,
+        orders: [],
+        activeOrderNo: "",
+        consultingOrder: null,
+        messages: [],
+        inputValue: "",
+        mode: "AI"
+      })
+      return
+    }
+    const requests = bindings.map((binding) => new Promise((resolve) => {
+      wx.request({
+        url: `http://localhost:8080/api/twenty-mall/consumer/orders?accountNo=${binding.accountNo}`,
+        success: (res) => {
+          const list = (res.data && res.data.data) || []
+          resolve(list.map((item) => ({
+            no: item.no,
+            title: item.title,
+            status: item.status,
+            afterSale: item.afterSale,
+            platform: "20商城",
+            accountNo: binding.accountNo,
+            merchant: "20商城演示店铺",
+            price: item.price,
+            image: item.image,
+            spec: item.spec,
+            service: item.afterSale === "未申请" ? "可申请售后" : "售后处理中"
+          })))
+        },
+        fail: () => resolve([])
+      })
+    }))
+    Promise.all(requests).then((result) => {
+      const nextOrders = result.reduce((all, list) => all.concat(list), [])
+      if (!nextOrders.length) {
+        this.setData({
+          platformBound: true,
+          orders: [],
+          activeOrderNo: "",
+          consultingOrder: null,
+          messages: []
+        })
+        return
+      }
+      const activeOrder = nextOrders.find((item) => item.no === this.data.activeOrderNo) || nextOrders[0]
+      this.setData({
+        platformBound: true,
+        orders: nextOrders,
+        activeOrderNo: activeOrder.no,
+        consultingOrder: activeOrder
+      })
+      this.loadConversation()
+      this.startPolling()
+    })
+  },
   goOrderDetail() {
+    if (!this.data.consultingOrder) return
     wx.navigateTo({ url: `/pages/product/index?no=${this.data.consultingOrder.no}` })
   },
   switchOrder(e) {
@@ -37,25 +112,88 @@ Page({
       consultingOrder: order,
       mode: "AI",
       inputValue: "",
-      messages: this.data.chatMap[no] || [
-        { role: "ai", speaker: "AI客服", content: `当前已切换到${order.merchant}订单，请描述需要咨询的问题。` }
-      ]
+      messages: []
     })
+    this.loadConversation()
+  },
+  goBind() {
+    wx.switchTab({ url: "/pages/home/index" })
   },
   sendMessage() {
+    if (!this.data.platformBound || !this.data.activeOrderNo) {
+      wx.showToast({ title: "请先绑定电商平台", icon: "none" })
+      return
+    }
     const value = this.data.inputValue.trim()
     if (!value) return
     const wantsHuman = value.includes("人工") || value.includes("客服")
-    const reply = wantsHuman
-      ? { role: "staff", speaker: "人工客服", content: "您好，已为您转接人工客服，请描述需要处理的问题。" }
-      : { role: "ai", speaker: "AI客服", content: "我已收到你的问题，会结合订单和售后规则为你查询。" }
     const no = this.data.activeOrderNo
-    const nextMessages = [...this.data.messages, { role: "user", speaker: "我", content: value }, reply]
-    this.setData({
-      inputValue: "",
-      mode: wantsHuman ? "人工" : this.data.mode,
-      messages: nextMessages,
-      chatMap: { ...this.data.chatMap, [no]: nextMessages }
+    this.setData({ inputValue: "", mode: wantsHuman ? "人工" : this.data.mode })
+    wx.request({
+      url: `${API_BASE}/conversations/${no}/messages`,
+      method: "POST",
+      data: {
+        senderType: "CONSUMER",
+        content: value
+      },
+      success: () => {
+        if (wantsHuman) {
+          this.transferToStaff()
+          return
+        }
+        this.loadMessages()
+      },
+      fail: () => {
+        wx.showToast({ title: "消息发送失败，请确认后端已启动", icon: "none" })
+      }
     })
+  },
+  transferToStaff() {
+    wx.request({
+      url: `${API_BASE}/conversations/${this.data.activeOrderNo}/transfer`,
+      method: "POST",
+      success: () => {
+        this.setData({ mode: "人工" })
+        this.loadMessages()
+      },
+      fail: () => {
+        wx.showToast({ title: "转人工失败，请稍后重试", icon: "none" })
+      }
+    })
+  },
+  loadConversation() {
+    if (!this.data.platformBound || !this.data.activeOrderNo) return
+    wx.request({
+      url: `${API_BASE}/conversations/${this.data.activeOrderNo}`,
+      success: (res) => {
+        const data = res.data && res.data.data
+        if (data) {
+          this.setData({ mode: data.status === "AGENT_SERVING" ? "人工" : "AI" })
+        }
+        this.loadMessages()
+      },
+      fail: () => this.loadMessages()
+    })
+  },
+  loadMessages() {
+    if (!this.data.platformBound || !this.data.activeOrderNo) return
+    wx.request({
+      url: `${API_BASE}/conversations/${this.data.activeOrderNo}/messages`,
+      success: (res) => {
+        const list = (res.data && res.data.data) || []
+        this.setData({ messages: list.map(normalizeMessage) })
+      }
+    })
+  },
+  startPolling() {
+    this.stopPolling()
+    if (!this.data.platformBound || !this.data.activeOrderNo) return
+    this.pollingTimer = setInterval(() => this.loadConversation(), 2500)
+  },
+  stopPolling() {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer)
+      this.pollingTimer = null
+    }
   }
 })

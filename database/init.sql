@@ -40,6 +40,12 @@ DROP TABLE IF EXISTS external_api_call_log;
 DROP TABLE IF EXISTS external_auth_token;
 DROP TABLE IF EXISTS external_shop_binding;
 DROP TABLE IF EXISTS external_platform;
+DROP TABLE IF EXISTS twenty_mall_review;
+DROP TABLE IF EXISTS twenty_mall_after_sale;
+DROP TABLE IF EXISTS twenty_mall_order_item;
+DROP TABLE IF EXISTS twenty_mall_order;
+DROP TABLE IF EXISTS twenty_mall_product;
+DROP TABLE IF EXISTS twenty_mall_account;
 DROP TABLE IF EXISTS merchant_staff;
 DROP TABLE IF EXISTS merchant;
 DROP TABLE IF EXISTS sys_user_role;
@@ -132,6 +138,120 @@ CREATE TABLE external_platform (
   deleted TINYINT(1) NOT NULL DEFAULT 0,
   UNIQUE KEY uk_external_platform_code (platform_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='外部电商平台配置';
+
+CREATE TABLE twenty_mall_account (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  account_no VARCHAR(64) NOT NULL,
+  password_plain VARCHAR(128) NOT NULL,
+  account_role VARCHAR(32) NOT NULL,
+  display_name VARCHAR(128) NOT NULL,
+  phone VARCHAR(32) NULL,
+  bind_status VARCHAR(32) NOT NULL DEFAULT 'UNBOUND',
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_twenty_mall_account_no_role (account_no, account_role),
+  KEY idx_twenty_mall_account_role (account_role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城模拟账号';
+
+CREATE TABLE twenty_mall_product (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  merchant_account_id BIGINT NOT NULL,
+  product_no VARCHAR(64) NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  product_image_url VARCHAR(512) NULL,
+  price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  stock INT NOT NULL DEFAULT 0,
+  category VARCHAR(64) NULL,
+  description TEXT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'ON_SALE',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_twenty_mall_product_no (product_no),
+  KEY idx_twenty_mall_product_merchant (merchant_account_id),
+  CONSTRAINT fk_twenty_mall_product_merchant FOREIGN KEY (merchant_account_id) REFERENCES twenty_mall_account (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城模拟商品';
+
+CREATE TABLE twenty_mall_order (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(64) NOT NULL,
+  consumer_account_id BIGINT NOT NULL,
+  merchant_account_id BIGINT NOT NULL,
+  order_status VARCHAR(32) NOT NULL,
+  pay_status VARCHAR(32) NOT NULL,
+  logistics_status VARCHAR(32) NULL,
+  after_sale_status VARCHAR(32) NULL,
+  total_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  paid_at DATETIME NULL,
+  ordered_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_twenty_mall_order_no (order_no),
+  KEY idx_twenty_mall_order_consumer (consumer_account_id),
+  KEY idx_twenty_mall_order_merchant (merchant_account_id),
+  CONSTRAINT fk_twenty_mall_order_consumer FOREIGN KEY (consumer_account_id) REFERENCES twenty_mall_account (id),
+  CONSTRAINT fk_twenty_mall_order_merchant FOREIGN KEY (merchant_account_id) REFERENCES twenty_mall_account (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城模拟订单';
+
+CREATE TABLE twenty_mall_order_item (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  product_id BIGINT NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  sku_name VARCHAR(255) NULL,
+  product_image_url VARCHAR(512) NULL,
+  unit_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  quantity INT NOT NULL DEFAULT 1,
+  total_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  after_sale_status VARCHAR(32) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  KEY idx_twenty_mall_order_item_order (order_id),
+  CONSTRAINT fk_twenty_mall_order_item_order FOREIGN KEY (order_id) REFERENCES twenty_mall_order (id),
+  CONSTRAINT fk_twenty_mall_order_item_product FOREIGN KEY (product_id) REFERENCES twenty_mall_product (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城模拟订单明细';
+
+CREATE TABLE twenty_mall_after_sale (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  after_sale_no VARCHAR(64) NOT NULL,
+  order_id BIGINT NOT NULL,
+  order_item_id BIGINT NOT NULL,
+  after_sale_type VARCHAR(32) NOT NULL,
+  reason_type VARCHAR(64) NOT NULL,
+  description TEXT NULL,
+  requested_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  status VARCHAR(32) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_twenty_mall_after_sale_no (after_sale_no),
+  KEY idx_twenty_mall_after_sale_order (order_id),
+  CONSTRAINT fk_twenty_mall_after_sale_order FOREIGN KEY (order_id) REFERENCES twenty_mall_order (id),
+  CONSTRAINT fk_twenty_mall_after_sale_item FOREIGN KEY (order_item_id) REFERENCES twenty_mall_order_item (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城模拟售后';
+
+CREATE TABLE twenty_mall_review (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  product_id BIGINT NOT NULL,
+  consumer_account_id BIGINT NOT NULL,
+  product_score INT NOT NULL,
+  service_score INT NOT NULL,
+  content TEXT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PUBLISHED',
+  reviewed_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT(1) NOT NULL DEFAULT 0,
+  KEY idx_twenty_mall_review_order (order_id),
+  CONSTRAINT fk_twenty_mall_review_order FOREIGN KEY (order_id) REFERENCES twenty_mall_order (id),
+  CONSTRAINT fk_twenty_mall_review_product FOREIGN KEY (product_id) REFERENCES twenty_mall_product (id),
+  CONSTRAINT fk_twenty_mall_review_consumer FOREIGN KEY (consumer_account_id) REFERENCES twenty_mall_account (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城模拟评价';
 
 CREATE TABLE external_shop_binding (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -783,4 +903,3 @@ CREATE TABLE operation_log (
   CONSTRAINT fk_operation_log_operator FOREIGN KEY (operator_id) REFERENCES sys_user (id),
   CONSTRAINT fk_operation_log_merchant FOREIGN KEY (merchant_id) REFERENCES merchant (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作日志';
-

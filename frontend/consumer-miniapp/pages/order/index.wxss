@@ -50,3 +50,64 @@
   color: #1f7ae0;
   font-size: 24rpx;
 }
+
+.empty-card {
+  background: #ffffff;
+  border: 1rpx solid #eef2f7;
+  border-radius: 18rpx;
+  padding: 42rpx 28rpx;
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #101828;
+  margin-bottom: 12rpx;
+}
+
+.empty-text {
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 1.6;
+  margin-bottom: 28rpx;
+}
+
+.empty-btn {
+  width: 220rpx;
+  background: #1f7ae0;
+  color: #ffffff;
+  border-radius: 14rpx;
+  font-size: 28rpx;
+}
+
+.source-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #eaf3ff;
+  border: 1rpx solid #cfe2ff;
+  border-radius: 16rpx;
+  padding: 18rpx 22rpx;
+  margin: 12rpx 0 18rpx;
+}
+
+.source-title {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #0f3f86;
+}
+
+.source-account {
+  font-size: 24rpx;
+  color: #315d9b;
+}
+
+.empty-mini {
+  color: #667085;
+  background: #ffffff;
+  border: 1rpx solid #eef2f7;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 18rpx;
+}

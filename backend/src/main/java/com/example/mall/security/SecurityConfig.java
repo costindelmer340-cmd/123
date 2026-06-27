@@ -27,6 +27,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
                 .requestMatchers(
                     "/api/health",
+                    "/api/demo-chat/**",
+                    "/api/twenty-mall/**",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html"

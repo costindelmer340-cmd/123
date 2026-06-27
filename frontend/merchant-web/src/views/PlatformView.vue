@@ -13,7 +13,7 @@
           <strong>{{ item.name }}</strong>
           <span>{{ item.desc }}</span>
         </div>
-        <el-button type="primary" @click="mockAuthorize(item.name)">绑定</el-button>
+        <el-button type="primary" @click="bindPlatform(item)">绑定</el-button>
       </div>
     </div>
     <el-alert
@@ -55,6 +55,26 @@
         <el-check-tag>真实权限审批</el-check-tag>
       </div>
     </div>
+    <el-dialog v-model="twentyMallDialogVisible" title="绑定20商城账号" width="460px">
+      <el-alert
+        title="商家端演示账号：20230141 / 123456"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 16px"
+      />
+      <el-form label-width="88px">
+        <el-form-item label="账号">
+          <el-input v-model="twentyMallForm.accountNo" placeholder="请输入20商城商家账号" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="twentyMallForm.password" type="password" show-password placeholder="请输入密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="twentyMallDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="twentyMallBinding" @click="submitTwentyMallBind">确认绑定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -69,16 +89,21 @@ import douyinIcon from '../assets/platforms/douyin.png'
 import taobaoIcon from '../assets/platforms/taobao.png'
 import pddIcon from '../assets/platforms/pinduoduo.png'
 import jdIcon from '../assets/platforms/jd.png'
+import twentyMallIcon from '../assets/platforms/twenty-mall.png'
 
 const bindingData = ref<typeof platformBindings>([])
 const syncTaskData = ref<typeof syncTasks>(syncTasks)
 const loading = ref(false)
 const syncingType = ref('')
+const twentyMallDialogVisible = ref(false)
+const twentyMallBinding = ref(false)
+const twentyMallForm = ref({ accountNo: '', password: '' })
 const platformOptions = [
   { code: 'DOUYIN', name: '抖音商城', desc: '同步抖店订单与售后', icon: douyinIcon },
   { code: 'TAOBAO', name: '淘宝', desc: '预留淘宝店铺接入', icon: taobaoIcon },
   { code: 'PDD', name: '拼多多', desc: '预留拼多多店铺接入', icon: pddIcon },
-  { code: 'JD', name: '京东', desc: '预留京东店铺接入', icon: jdIcon }
+  { code: 'JD', name: '京东', desc: '预留京东店铺接入', icon: jdIcon },
+  { code: 'TWENTY_MALL', name: '20商城', desc: '自建数据库模拟电商平台', icon: twentyMallIcon }
 ]
 
 onMounted(async () => {
@@ -105,6 +130,44 @@ async function runSync(syncType: string) {
     ElMessage({ type: 'warning', message: '后端暂不可用，当前为演示触发' })
   } finally {
     syncingType.value = ''
+  }
+}
+
+function bindPlatform(item: (typeof platformOptions)[number]) {
+  if (item.code === 'TWENTY_MALL') {
+    twentyMallForm.value = { accountNo: '', password: '' }
+    twentyMallDialogVisible.value = true
+    return
+  }
+  mockAuthorize(item.name)
+}
+
+async function submitTwentyMallBind() {
+  const accountNo = twentyMallForm.value.accountNo.trim()
+  const password = twentyMallForm.value.password.trim()
+  if (!accountNo || !password) {
+    ElMessage({ type: 'warning', message: '请输入20商城账号和密码' })
+    return
+  }
+  twentyMallBinding.value = true
+  try {
+    const response = await fetch('/api/twenty-mall/bind', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountNo, password, role: 'MERCHANT' })
+    })
+    const payload = await response.json()
+    if (payload.code !== '200') {
+      ElMessage({ type: 'error', message: payload.message || '账号或密码错误' })
+      return
+    }
+    mockAuthorize('20商城')
+    twentyMallDialogVisible.value = false
+    ElMessage({ type: 'success', message: `20商城商家账号 ${accountNo} 绑定成功` })
+  } catch {
+    ElMessage({ type: 'error', message: '请先启动后端服务' })
+  } finally {
+    twentyMallBinding.value = false
   }
 }
 

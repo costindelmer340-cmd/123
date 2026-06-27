@@ -16,8 +16,32 @@ export const afterSales = [
 ]
 
 export const conversations = [
-  { id: 1, conversationNo: 'CV202606250001', userId: 1, status: 'AGENT_SERVING', lastMessage: '好的，我已经帮您提交售后申请。', lastMessageAt: '2026-06-25 09:35:00', aiIntent: '退货退款' },
-  { id: 2, conversationNo: 'CV202606250002', userId: 8, status: 'AI_SERVING', lastMessage: '快递三天没更新了', lastMessageAt: '2026-06-25 12:05:00', aiIntent: '物流查询' }
+  {
+    id: 1,
+    conversationNo: 'CV202606250001',
+    userId: 1,
+    orderNo: 'DY202606250001',
+    productName: 'Aurora X1 智能手机',
+    merchantName: '星链数码旗舰店',
+    afterSaleStatus: '处理中',
+    status: 'AGENT_SERVING',
+    lastMessage: '退款进度在哪里看？',
+    lastMessageAt: '2026-06-25 09:35:00',
+    aiIntent: '退货退款'
+  },
+  {
+    id: 2,
+    conversationNo: 'CV202606250002',
+    userId: 8,
+    orderNo: 'DY202606250002',
+    productName: 'Breeze Pods 无线耳机',
+    merchantName: 'Breeze 声学专营店',
+    afterSaleStatus: '未申请',
+    status: 'AI_SERVING',
+    lastMessage: '快递三天没更新了',
+    lastMessageAt: '2026-06-25 12:05:00',
+    aiIntent: '物流查询'
+  }
 ]
 
 export const tickets = [

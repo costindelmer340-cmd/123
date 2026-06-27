@@ -1,23 +1,49 @@
+import { getTwentyMallBinding } from "../../utils/auth"
+
+const defaultProfile = {
+  nickname: "consumer_demo",
+  phone: "13338907581",
+  avatar: "/assets/avatars/user.png",
+  address: "",
+  bindPlatform: "未绑定",
+  lastConsult: "暂无"
+}
+
 Page({
   data: {
-    profile: {
-      nickname: "consumer_demo",
-      phone: "13338907581",
-      avatar: "/assets/avatars/user.png",
-      address: "浙江省杭州市余杭区售后服务中心",
-      bindPlatform: "抖音商城",
-      lastConsult: "2026-06-25 09:35:00"
-    }
+    profile: defaultProfile
   },
   onShow() {
     const profile = wx.getStorageSync("consumerProfile")
     const address = wx.getStorageSync("consumerAddress")
-    const nextProfile = profile ? { ...this.data.profile, ...profile } : this.data.profile
+    const binding = getTwentyMallBinding()
+    const nextProfile = profile ? { ...defaultProfile, ...profile } : { ...defaultProfile }
     nextProfile.phone = "13338907581"
-    if (address) {
+    if (address && address.fullAddress) {
       nextProfile.address = address.fullAddress
     }
     this.setData({ profile: nextProfile })
+    if (binding && binding.platform === "20商城") {
+      wx.request({
+        url: `http://localhost:8080/api/twenty-mall/profile?accountNo=${binding.accountNo}&role=CONSUMER`,
+        success: (res) => {
+          const data = res.data && res.data.data
+          if (data) {
+            this.setData({
+              profile: {
+                ...this.data.profile,
+                nickname: data.displayName,
+                phone: data.phone,
+                avatar: data.avatar || "/assets/avatars/twenty-user.png",
+                address: data.address || "四川省成都市高新区20商城模拟社区 2023号",
+                bindPlatform: "20商城",
+                lastConsult: "2026-06-27 11:20:00"
+              }
+            })
+          }
+        }
+      })
+    }
   },
   editProfile() {
     wx.navigateTo({ url: "/pages/profile-edit/index" })

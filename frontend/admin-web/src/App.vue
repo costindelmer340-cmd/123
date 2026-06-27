@@ -18,8 +18,14 @@
         </section>
         <section v-else-if="active === '外部平台'" class="card">
           <el-table :data="platforms">
+            <el-table-column label="图标" width="88">
+              <template #default="{ row }">
+                <img class="platform-icon" :src="row.icon" :alt="row.name" />
+              </template>
+            </el-table-column>
             <el-table-column prop="code" label="平台编码" />
             <el-table-column prop="name" label="平台名称" />
+            <el-table-column prop="description" label="说明" />
             <el-table-column prop="status" label="状态" />
             <el-table-column prop="shops" label="绑定店铺数" />
           </el-table>
@@ -50,6 +56,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import twentyMallIcon from './assets/platforms/twenty-mall.png'
 
 const sections = ['系统概览', '用户管理', '商家管理', '外部平台', '同步监控', '知识库', '规则配置', '评价分析', 'AI 配置']
 const active = ref('系统概览')
@@ -60,8 +67,11 @@ const metrics = [
   { label: 'AI 调用', value: '1,260' }
 ]
 const platforms = [
-  { code: 'DOUYIN', name: '抖音电商', status: '启用', shops: 18 },
-  { code: 'TAOBAO', name: '淘宝', status: '规划中', shops: 0 }
+  { code: 'DOUYIN', name: '抖音电商', description: '真实抖店开放平台接入', status: '启用', shops: 18, icon: '' },
+  { code: 'TAOBAO', name: '淘宝', description: '预留淘宝开放平台接入', status: '规划中', shops: 0, icon: '' },
+  { code: 'PDD', name: '拼多多', description: '预留拼多多开放平台接入', status: '规划中', shops: 0, icon: '' },
+  { code: 'JD', name: '京东', description: '预留京东开放平台接入', status: '规划中', shops: 0, icon: '' },
+  { code: 'TWENTY_MALL', name: '20商城', description: '自建数据库模拟真实电商平台，提供订单、售后、评价等演示数据', status: '启用', shops: 1, icon: twentyMallIcon }
 ]
 const syncLogs = [
   { task: '抖音订单同步', status: 'SUCCESS', count: 286, time: '2026-06-25 14:00:00' },

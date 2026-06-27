@@ -1,0 +1,673 @@
+{
+  "info": {
+    "_postman_id": "b7f3bdb4-8a6c-45bd-9a9b-ecommerce-after-sale",
+    "name": "电商售后客服与用户评价分析系统",
+    "description": "本集合根据当前本地项目已实现接口整理，覆盖认证、平台绑定、订单、售后、客服会话、工单、评价、知识库和 AI 服务接口。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "ai_url",
+      "value": "http://localhost:9000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-健康检查",
+      "item": [
+        {
+          "name": "后端健康检查",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/health"
+          }
+        },
+        {
+          "name": "AI 服务健康检查",
+          "request": {
+            "method": "GET",
+            "url": "{{ai_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01-认证登录",
+      "item": [
+        {
+          "name": "登录",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const token = res?.data?.accessToken || res?.accessToken;",
+                  "if (token) {",
+                  "  pm.environment.set('token', token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"merchant_admin_demo\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "注册",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"demo_user\",\n  \"password\": \"123456\",\n  \"phone\": \"13338907581\"\n}"
+            },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "刷新 Token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/auth/refresh"
+          }
+        },
+        {
+          "name": "当前登录用户",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02-商家平台绑定",
+      "item": [
+        {
+          "name": "查询支持平台",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/platform/platforms"
+          }
+        },
+        {
+          "name": "查询店铺绑定列表",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/platform/shop-bindings"
+          }
+        },
+        {
+          "name": "模拟店铺绑定",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platformCode\": \"DOUYIN\",\n  \"shopName\": \"星河数码抖音旗舰店\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/platform/shop-bindings/mock-bind"
+          }
+        },
+        {
+          "name": "模拟授权",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/merchant/platform/shop-bindings/1/mock-auth"
+          }
+        },
+        {
+          "name": "查询同步任务",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/platform/shop-bindings/1/sync-tasks"
+          }
+        },
+        {
+          "name": "触发同步",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/merchant/platform/shop-bindings/1/sync/ORDER_SYNC/trigger"
+          }
+        },
+        {
+          "name": "查询同步日志",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/platform/shop-bindings/1/sync-logs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03-外部订单",
+      "item": [
+        {
+          "name": "查询订单列表",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/orders"
+          }
+        },
+        {
+          "name": "查询订单详情",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/orders/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04-售后处理",
+      "item": [
+        {
+          "name": "消费者发起售后",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1,\n  \"afterSaleType\": \"RETURN_REFUND\",\n  \"reasonType\": \"PRODUCT_QUALITY\",\n  \"requestedAmount\": 2999,\n  \"description\": \"商品屏幕存在划痕，申请退货退款\"\n}"
+            },
+            "url": "{{base_url}}/api/consumer/after-sales"
+          }
+        },
+        {
+          "name": "消费者查看售后详情",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/consumer/after-sales/1"
+          }
+        },
+        {
+          "name": "商家查询售后列表",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/after-sales"
+          }
+        },
+        {
+          "name": "商家查询售后详情",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/after-sales/1"
+          }
+        },
+        {
+          "name": "商家审核售后",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewResult\": \"APPROVE\",\n  \"reviewOpinion\": \"审核通过，进入退货退款流程\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/after-sales/1/review"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05-客服会话",
+      "item": [
+        {
+          "name": "消费者创建会话",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1,\n  \"initialMessage\": \"我想查询退款进度\"\n}"
+            },
+            "url": "{{base_url}}/api/consumer/conversations"
+          }
+        },
+        {
+          "name": "消费者查看会话消息",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/consumer/conversations/1/messages"
+          }
+        },
+        {
+          "name": "消费者评价客服",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5,\n  \"content\": \"客服回复及时，解决了问题\"\n}"
+            },
+            "url": "{{base_url}}/api/consumer/conversations/1/evaluate"
+          }
+        },
+        {
+          "name": "商家查询会话列表",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/conversations"
+          }
+        },
+        {
+          "name": "商家查看会话详情",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/conversations/1"
+          }
+        },
+        {
+          "name": "商家查看会话消息",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/conversations/1/messages"
+          }
+        },
+        {
+          "name": "转人工或转接会话",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetStaffId\": 1,\n  \"remark\": \"用户要求人工处理\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/conversations/1/transfer"
+          }
+        },
+        {
+          "name": "关闭会话",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/merchant/conversations/1/close"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06-工单处理",
+      "item": [
+        {
+          "name": "查询工单列表",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/tickets"
+          }
+        },
+        {
+          "name": "查询工单详情",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/tickets/1"
+          }
+        },
+        {
+          "name": "创建工单",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"手机屏幕划痕退货退款\",\n  \"ticketType\": \"AFTER_SALE\",\n  \"priority\": \"HIGH\",\n  \"remark\": \"用户上传了商品照片，需售后主管复核\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/tickets"
+          }
+        },
+        {
+          "name": "更新工单",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"assignee\": \"售后主管\",\n  \"flowRemark\": \"已转售后主管复核\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/tickets/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07-评价分析",
+      "item": [
+        {
+          "name": "查询评价列表",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/reviews"
+          }
+        },
+        {
+          "name": "查询评价详情",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/reviews/1"
+          }
+        },
+        {
+          "name": "分析评价",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/merchant/reviews/1/analyze"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08-知识库",
+      "item": [
+        {
+          "name": "查询知识文章",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/knowledge/articles"
+          }
+        },
+        {
+          "name": "新增知识文章",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"手机类商品售后检查标准\",\n  \"category\": \"PRODUCT_POLICY\",\n  \"content\": \"收到质量问题反馈后，优先核验照片、序列号和签收时间。\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/knowledge/articles"
+          }
+        },
+        {
+          "name": "修改知识文章",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"手机类商品售后检查标准\",\n  \"category\": \"PRODUCT_POLICY\",\n  \"content\": \"更新后的售后检查标准。\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/knowledge/articles/1"
+          }
+        },
+        {
+          "name": "删除知识文章",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/merchant/knowledge/articles/1"
+          }
+        },
+        {
+          "name": "查询 FAQ",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/knowledge/faqs"
+          }
+        },
+        {
+          "name": "新增 FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"退款多久到账？\",\n  \"answer\": \"退款到账时间以外部平台退款结果为准。\",\n  \"category\": \"REFUND\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/knowledge/faqs"
+          }
+        },
+        {
+          "name": "修改 FAQ",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"退款多久到账？\",\n  \"answer\": \"一般以平台退款进度为准。\",\n  \"category\": \"REFUND\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/knowledge/faqs/1"
+          }
+        },
+        {
+          "name": "删除 FAQ",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/merchant/knowledge/faqs/1"
+          }
+        },
+        {
+          "name": "查询售后规则",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/merchant/knowledge/rules"
+          }
+        },
+        {
+          "name": "新增售后规则",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleName\": \"质量问题优先审核\",\n  \"ruleType\": \"PRIORITY\",\n  \"content\": \"商品质量问题默认标记为高优先级。\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/knowledge/rules"
+          }
+        },
+        {
+          "name": "修改售后规则",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleName\": \"质量问题优先审核\",\n  \"ruleType\": \"PRIORITY\",\n  \"content\": \"质量问题进入人工复核队列。\"\n}"
+            },
+            "url": "{{base_url}}/api/merchant/knowledge/rules/1"
+          }
+        },
+        {
+          "name": "删除售后规则",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/merchant/knowledge/rules/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09-AI 服务",
+      "item": [
+        {
+          "name": "意图识别",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"我想查询退款进度\"\n}"
+            },
+            "url": "{{ai_url}}/api/ai/intent"
+          }
+        },
+        {
+          "name": "情感分析",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"商品有划痕，我很不满意\"\n}"
+            },
+            "url": "{{ai_url}}/api/ai/sentiment"
+          }
+        },
+        {
+          "name": "主题归类",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"快递三天没有更新，想申请退款\"\n}"
+            },
+            "url": "{{ai_url}}/api/ai/topic"
+          }
+        },
+        {
+          "name": "工单分类",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"手机屏幕有划痕，需要退货退款\"\n}"
+            },
+            "url": "{{ai_url}}/api/ai/ticket/classify"
+          }
+        },
+        {
+          "name": "AI 辅助回复",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"退款多久到账？\",\n  \"orderStatus\": \"售后处理中\",\n  \"afterSaleStatus\": \"待平台退款\",\n  \"policyContext\": \"退款到账时间以外部平台处理结果为准。\"\n}"
+            },
+            "url": "{{ai_url}}/api/ai/reply"
+          }
+        }
+      ]
+    }
+  ]
+}

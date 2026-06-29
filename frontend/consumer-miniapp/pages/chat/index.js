@@ -1,6 +1,16 @@
 import { getTwentyMallBindings } from "../../utils/auth"
+import { enrichOrderDisplay } from "../../utils/order-display"
 
 const API_BASE = "http://localhost:8080/api/demo-chat"
+
+function formatMessageTime(value) {
+  if (!value) return ""
+  const text = String(value).replace("T", " ").replace(/\.\d+$/, "")
+  const match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/)
+  if (!match) return text
+  const [, year, month, day, hour, minute, second = "00"] = match
+  return `${year}.${Number(month)}.${Number(day)} ${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:${second.padStart(2, "0")}`
+}
 
 function normalizeMessage(item) {
   const senderType = item.senderType || "AI"
@@ -10,6 +20,7 @@ function normalizeMessage(item) {
     id: item.id,
     role: isUser ? "user" : (isStaff ? "staff" : "ai"),
     speaker: isUser ? "我" : (isStaff ? "人工客服" : "AI客服"),
+    time: formatMessageTime(item.createdAt),
     content: item.content
   }
 }
@@ -59,14 +70,14 @@ Page({
         url: `http://localhost:8080/api/twenty-mall/consumer/orders?accountNo=${binding.accountNo}`,
         success: (res) => {
           const list = (res.data && res.data.data) || []
-          resolve(list.map((item) => ({
+          resolve(list.map((item) => enrichOrderDisplay({
             no: item.no,
             title: item.title,
             status: item.status,
             afterSale: item.afterSale,
             platform: "20商城",
             accountNo: binding.accountNo,
-            merchant: "20商城演示店铺",
+            merchant: item.merchant,
             price: item.price,
             image: item.image,
             spec: item.spec,
@@ -88,7 +99,13 @@ Page({
         })
         return
       }
-      const activeOrder = nextOrders.find((item) => item.no === this.data.activeOrderNo) || nextOrders[0]
+      const pendingOrderNo = wx.getStorageSync("pendingChatOrderNo")
+      const activeOrder = nextOrders.find((item) => item.no === pendingOrderNo)
+        || nextOrders.find((item) => item.no === this.data.activeOrderNo)
+        || nextOrders[0]
+      if (pendingOrderNo) {
+        wx.removeStorageSync("pendingChatOrderNo")
+      }
       this.setData({
         platformBound: true,
         orders: nextOrders,

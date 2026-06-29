@@ -4,7 +4,7 @@
     <view class="profile-main">
       <view class="title">{{profile.nickname}}</view>
       <view class="muted">手机号：{{profile.phone}}</view>
-      <view class="tag">已绑定：{{profile.bindPlatform}}</view>
+      <view class="tag">{{profile.bindPlatform}}</view>
     </view>
     <button class="edit-btn" bindtap="editProfile">修改</button>
   </view>
@@ -32,6 +32,28 @@
         <view class="muted address">{{profile.address || '暂未添加地址'}}</view>
       </view>
       <view class="arrow">›</view>
+    </view>
+  </view>
+
+  <view class="account-actions">
+    <button class="logout-btn" bindtap="logout">退出登录</button>
+    <button class="cancel-account-btn" bindtap="openCancelAccountDialog">注销账号</button>
+  </view>
+
+  <view wx:if="{{cancelDialogVisible}}" class="dialog-mask">
+    <view class="cancel-dialog">
+      <view class="dialog-title">注销账号</view>
+      <view class="dialog-warning">该操作会永久删除当前一级账号在本机保存的资料、地址、电商平台绑定和登录状态，删除后不可恢复。</view>
+      <view class="dialog-hint">请仔细阅读 5 秒后再确认是否继续。</view>
+      <view class="dialog-actions">
+        <button class="dialog-cancel-btn" bindtap="closeCancelAccountDialog">取消</button>
+        <button
+          class="dialog-confirm-btn {{cancelConfirmEnabled ? '' : 'dialog-confirm-disabled'}}"
+          bindtap="confirmCancelAccount"
+        >
+          {{cancelConfirmEnabled ? '确认注销' : '确认注销(' + cancelCountdown + 's)'}}
+        </button>
+      </view>
     </view>
   </view>
 </view>

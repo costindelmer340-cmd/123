@@ -17,23 +17,39 @@
       </div>
     </div>
     <el-alert
-      title="该页优先显示后端真实绑定列表，若未登录或接口不可用，则回退到演示数据。"
-      type="info"
+      v-if="!bindingData.length"
+      title="当前一级商家账号尚未绑定任何二级电商平台商家账号，请先完成店铺绑定。"
+      type="warning"
       :closable="false"
       show-icon
       style="margin-bottom: 16px"
     />
-    <el-descriptions v-loading="loading" border :column="2">
-      <el-descriptions-item label="平台">{{ currentBinding.platformName || currentBinding.platformCode }}</el-descriptions-item>
-      <el-descriptions-item label="授权状态">
-        <el-tag :type="currentBinding.authStatus === 'ACTIVE' ? 'success' : 'warning'">{{ currentBinding.authStatus }}</el-tag>
-      </el-descriptions-item>
-      <el-descriptions-item label="店铺ID">{{ currentBinding.externalShopId }}</el-descriptions-item>
-      <el-descriptions-item label="店铺名称">{{ currentBinding.shopName }}</el-descriptions-item>
-      <el-descriptions-item label="同步范围">订单、售后、评价、物流</el-descriptions-item>
-      <el-descriptions-item label="最近同步">{{ currentBinding.lastSyncedAt || '-' }}</el-descriptions-item>
-    </el-descriptions>
-    <div class="split-grid">
+    <el-alert
+      v-else
+      title="已绑定的电商平台商家账号将作为订单、售后、客服和评价数据来源。"
+      type="success"
+      :closable="false"
+      show-icon
+      style="margin-bottom: 16px"
+    />
+    <el-table v-if="bindingData.length" v-loading="loading" :data="bindingData" border style="margin-bottom: 16px">
+      <el-table-column prop="platformName" label="平台" width="160" />
+      <el-table-column prop="externalShopId" label="店铺ID" min-width="180" />
+      <el-table-column prop="shopName" label="店铺名称" min-width="220" />
+      <el-table-column prop="accountNo" label="绑定账号" width="160" />
+      <el-table-column label="授权状态" width="120">
+        <template #default="{ row }">
+          <el-tag :type="row.authStatus === 'ACTIVE' ? 'success' : 'warning'">{{ authStatusText(row.authStatus) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="lastSyncedAt" label="最近同步" width="180" />
+      <el-table-column label="操作" width="110" fixed="right">
+        <template #default="{ row }">
+          <el-button link type="danger" @click="unbindPlatform(row)">解绑</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <div v-if="bindingData.length" class="split-grid">
       <div class="panel">
         <h2 class="section-title">同步任务</h2>
         <div v-for="item in syncTaskData" :key="item.id" class="status-line">
@@ -57,7 +73,7 @@
     </div>
     <el-dialog v-model="twentyMallDialogVisible" title="绑定20商城账号" width="460px">
       <el-alert
-        title="商家端演示账号：20230141 / 123456"
+        title="商家端演示账号：20230141 / 123456（极光外设旗舰店），20230142 / 123456（黑曜通勤箱包店）"
         type="info"
         :closable="false"
         style="margin-bottom: 16px"
@@ -79,19 +95,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, watch, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { loadPlatformBindings, loadSyncTasks, triggerSync } from '../api'
-import { loadListWithFallback } from '../api/normalize'
-import { platformBindings, syncTasks } from '../data/mock'
+import { loadSyncTasks, triggerSync } from '../api'
+import { syncTasks } from '../data/mock'
 import { isDemoMode } from '../utils/auth'
+import { getMerchantBindings, getTwentyMallMerchantName, removeMerchantBinding, saveMerchantBinding, type MerchantPlatformBinding } from '../utils/auth'
 import douyinIcon from '../assets/platforms/douyin.png'
 import taobaoIcon from '../assets/platforms/taobao.png'
 import pddIcon from '../assets/platforms/pinduoduo.png'
 import jdIcon from '../assets/platforms/jd.png'
 import twentyMallIcon from '../assets/platforms/twenty-mall.png'
 
-const bindingData = ref<typeof platformBindings>([])
+const bindingData = ref<MerchantPlatformBinding[]>([])
 const syncTaskData = ref<typeof syncTasks>(syncTasks)
 const loading = ref(false)
 const syncingType = ref('')
@@ -107,15 +123,30 @@ const platformOptions = [
 ]
 
 onMounted(async () => {
-  loading.value = true
-  bindingData.value = await loadListWithFallback(() => loadPlatformBindings(), platformBindings)
-  syncTaskData.value = await loadListWithFallback(() => loadSyncTasks(currentBinding.value.id), syncTasks)
-  loading.value = false
+  if (new URLSearchParams(window.location.search).get('needBind') === '1') {
+    ElMessage({ type: 'warning', message: '请先绑定至少一个电商平台商家账号' })
+  }
+  loadLocalBindings()
 })
 
-const currentBinding = computed(() => bindingData.value[0] || platformBindings[0])
+watch(bindingData, async (value) => {
+  if (!value.length) {
+    syncTaskData.value = []
+    return
+  }
+  syncTaskData.value = syncTasks
+}, { immediate: true })
+
+function loadLocalBindings() {
+  bindingData.value = getMerchantBindings()
+}
 
 async function runSync(syncType: string) {
+  const currentBinding = bindingData.value[0]
+  if (!currentBinding) {
+    ElMessage({ type: 'warning', message: '请先绑定电商平台商家账号' })
+    return
+  }
   syncingType.value = syncType
   try {
     if (isDemoMode()) {
@@ -123,9 +154,9 @@ async function runSync(syncType: string) {
       ElMessage({ type: 'success', message: '演示模式下已模拟触发同步' })
       return
     }
-    await triggerSync(currentBinding.value.id, syncType)
+    await triggerSync(currentBinding.id, syncType)
     ElMessage({ type: 'success', message: '同步任务已触发' })
-    syncTaskData.value = await loadListWithFallback(() => loadSyncTasks(currentBinding.value.id), syncTasks)
+    syncTaskData.value = await loadSyncTasks(currentBinding.id) as typeof syncTasks
   } catch {
     ElMessage({ type: 'warning', message: '后端暂不可用，当前为演示触发' })
   } finally {
@@ -161,7 +192,7 @@ async function submitTwentyMallBind() {
       ElMessage({ type: 'error', message: payload.message || '账号或密码错误' })
       return
     }
-    mockAuthorize('20商城')
+    mockAuthorize('20商城', accountNo)
     twentyMallDialogVisible.value = false
     ElMessage({ type: 'success', message: `20商城商家账号 ${accountNo} 绑定成功` })
   } catch {
@@ -171,13 +202,46 @@ async function submitTwentyMallBind() {
   }
 }
 
-function mockAuthorize(platformName = '抖音商城') {
-  bindingData.value = [{
-    ...currentBinding.value,
+async function unbindPlatform(row: MerchantPlatformBinding) {
+  const confirmed = window.confirm(`确定要解绑 ${row.platformName} 店铺 ${row.shopName} 吗？解绑后该店铺数据将不再显示。`)
+  if (!confirmed) return
+  removeMerchantBinding(row.platformCode, row.externalShopId)
+  loadLocalBindings()
+  ElMessage({ type: 'success', message: '已解绑' })
+}
+
+function authStatusText(status: string) {
+  const statusMap: Record<string, string> = {
+    ACTIVE: '已授权',
+    EXPIRED: '已过期',
+    UNBOUND: '未绑定',
+    DISABLED: '已停用'
+  }
+  return statusMap[status] || status
+}
+
+function mockAuthorize(platformName = '抖音商城', accountNo = '') {
+  const codeMap: Record<string, string> = {
+    抖音商城: 'DOUYIN',
+    淘宝: 'TAOBAO',
+    拼多多: 'PDD',
+    京东: 'JD',
+    '20商城': 'TWENTY_MALL'
+  }
+  const code = codeMap[platformName] || 'MOCK'
+  const binding: MerchantPlatformBinding = {
+    id: Date.now(),
+    platformCode: code,
     platformName,
     authStatus: 'ACTIVE',
-    lastSyncedAt: '2026-06-25 19:30:00'
-  }]
+    externalShopId: accountNo ? `TM_SHOP_${accountNo}` : `${code}_SHOP_DEMO`,
+    shopName: accountNo ? getTwentyMallMerchantName(accountNo) : `${platformName}模拟店铺`,
+    sellerNick: accountNo ? getTwentyMallMerchantName(accountNo) : `${platformName}商家`,
+    accountNo: accountNo || '模拟授权',
+    lastSyncedAt: '2026-06-27 16:20:00'
+  }
+  saveMerchantBinding(binding)
+  loadLocalBindings()
   ElMessage({ type: 'success', message: `${platformName}店铺已完成模拟绑定` })
 }
 </script>

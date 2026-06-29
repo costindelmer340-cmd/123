@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @CrossOrigin
@@ -24,8 +25,8 @@ public class DemoChatController {
     }
 
     @GetMapping("/conversations")
-    public ApiResponse<List<DemoConversationResponse>> conversations() {
-        return ApiResponse.success(chatStore.listConversations(), traceId());
+    public ApiResponse<List<DemoConversationResponse>> conversations(@RequestParam(required = false) List<String> merchantAccounts) {
+        return ApiResponse.success(chatStore.listConversations(merchantAccounts), traceId());
     }
 
     @GetMapping("/conversations/{orderNo}")
@@ -68,6 +69,7 @@ public class DemoChatController {
         String conversationNo,
         String orderNo,
         String productName,
+        String merchantAccountNo,
         String merchantName,
         String afterSaleStatus,
         String status,

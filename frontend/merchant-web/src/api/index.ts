@@ -16,8 +16,16 @@ export async function loadOrders(params: Record<string, unknown> = {}) {
   return unwrap(await api.get('/merchant/orders', { params }))
 }
 
+export async function loadTwentyMallMerchantOrders(accountNo: string) {
+  return unwrap(await api.get('/twenty-mall/merchant/orders', { params: { accountNo } }))
+}
+
 export async function loadAfterSales(params: Record<string, unknown> = {}) {
   return unwrap(await api.get('/merchant/after-sales', { params }))
+}
+
+export async function loadTwentyMallMerchantAfterSales(accountNo: string) {
+  return unwrap(await api.get('/twenty-mall/merchant/after-sales', { params: { accountNo } }))
 }
 
 export async function loadConversations() {
@@ -30,6 +38,10 @@ export async function loadTickets(params: Record<string, unknown> = {}) {
 
 export async function loadReviews(params: Record<string, unknown> = {}) {
   return unwrap(await api.get('/merchant/reviews', { params }))
+}
+
+export async function loadTwentyMallMerchantReviews(accountNo: string) {
+  return unwrap(await api.get('/twenty-mall/merchant/reviews', { params: { accountNo } }))
 }
 
 export async function loadArticles(params: Record<string, unknown> = {}) {

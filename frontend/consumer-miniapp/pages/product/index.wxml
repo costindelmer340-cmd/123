@@ -17,24 +17,108 @@
       <text>{{product.platform}}</text>
     </view>
     <view class="info-row">
+      <text class="muted">商家名称</text>
+      <text>{{product.merchant}}</text>
+    </view>
+    <view class="info-row">
       <text class="muted">订单状态</text>
       <text>{{product.status}}</text>
+    </view>
+    <view class="info-row" wx:if="{{product.orderedAt}}">
+      <text class="muted">下单时间</text>
+      <text>{{product.orderedAt}}</text>
+    </view>
+    <view class="info-row" wx:if="{{product.deliveredAt}}">
+      <text class="muted">到货时间</text>
+      <text>{{product.deliveredAt}}</text>
     </view>
     <view class="info-row">
       <text class="muted">售后状态</text>
       <text>{{product.afterSale}}</text>
     </view>
+    <view class="policy-block" wx:if="{{product.policyTags && product.policyTags.length}}">
+      <view class="muted policy-title">售后政策</view>
+      <view class="policy-tags">
+        <view wx:for="{{product.policyTags}}" wx:key="index" class="policy-tag">{{item}}</view>
+      </view>
+    </view>
   </view>
 
   <view class="card">
     <view class="sub-title">商品描述</view>
-    <view class="muted desc">商品信息来自外部电商平台同步，用于确认售后商品、规格、价格和订单来源。</view>
+    <view class="muted desc">{{product.description}}</view>
     <view class="feature-list">
-      <view class="tag">官方标配</view>
-      <view class="tag">支持售后</view>
-      <view class="tag">平台订单</view>
+      <view wx:for="{{product.features}}" wx:key="index" class="tag">{{item}}</view>
     </view>
   </view>
 
-  <button class="primary-btn" bindtap="applyAfterSale">申请售后</button>
+  <button class="primary-btn" bindtap="handleAfterSalePrimary">
+    {{product.afterSale && product.afterSale !== '未申请' ? '查看售后详细' : '申请售后'}}
+  </button>
+  <button
+    wx:if="{{product.afterSale && product.afterSale !== '未申请'}}"
+    class="modify-after-sale-btn"
+    bindtap="modifyAfterSale"
+  >修改售后信息</button>
+  <button class="contact-btn" bindtap="contactMerchant">联系商家</button>
+  <button class="review-btn" bindtap="openReviewDialog">评价商家</button>
+
+  <view wx:if="{{afterSaleDetailVisible}}" class="after-sale-mask">
+    <view class="after-sale-dialog">
+      <view class="review-title">售后详情</view>
+      <view class="after-sale-row">
+        <text class="muted">订单编号</text>
+        <text>{{product.no}}</text>
+      </view>
+      <view class="after-sale-row">
+        <text class="muted">商品名称</text>
+        <text>{{product.title}}</text>
+      </view>
+      <view class="after-sale-row">
+        <text class="muted">商家名称</text>
+        <text>{{product.merchant}}</text>
+      </view>
+      <view class="after-sale-row">
+        <text class="muted">售后类型</text>
+        <text>{{afterSaleDetail.type || '退货退款'}}</text>
+      </view>
+      <view class="after-sale-row">
+        <text class="muted">售后状态</text>
+        <text>{{product.afterSale}}</text>
+      </view>
+      <view class="after-sale-row">
+        <text class="muted">申请时间</text>
+        <text>{{afterSaleDetail.appliedAt || '2026.6.29 10:35:23'}}</text>
+      </view>
+      <view class="after-sale-tip">售后申请已提交，商家将在后台审核并处理。你可以返回本页修改售后类型。</view>
+      <button class="review-submit" bindtap="closeAfterSaleDetail">知道了</button>
+    </view>
+  </view>
+
+  <view wx:if="{{reviewVisible}}" class="review-mask">
+    <view class="review-dialog">
+      <view class="review-title">评价商家</view>
+      <view class="review-merchant">{{product.merchant}}</view>
+      <view class="star-row">
+        <text
+          wx:for="{{reviewStars}}"
+          wx:key="value"
+          data-score="{{item.value}}"
+          class="star {{item.active ? 'star-active' : ''}}"
+          bindtap="setReviewScore"
+        >★</text>
+      </view>
+      <textarea
+        class="review-textarea"
+        placeholder="请描述本次商家服务体验"
+        maxlength="200"
+        value="{{reviewText}}"
+        bindinput="onReviewInput"
+      />
+      <view class="review-actions">
+        <button class="review-cancel" bindtap="closeReviewDialog">取消</button>
+        <button class="review-submit" bindtap="submitReview">提交评价</button>
+      </view>
+    </view>
+  </view>
 </view>

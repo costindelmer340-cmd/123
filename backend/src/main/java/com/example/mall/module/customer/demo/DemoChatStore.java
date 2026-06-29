@@ -27,6 +27,7 @@ public class DemoChatStore {
             "CV202606250001",
             "DY202606250001",
             "Aurora X1 智能手机",
+            "DY_SHOP_DEMO",
             "星链数码旗舰店",
             "处理中",
             "AI_SERVING",
@@ -43,6 +44,7 @@ public class DemoChatStore {
             "CV202606250002",
             "DY202606250002",
             "Breeze Pods 无线耳机",
+            "DY_SHOP_DEMO",
             "Breeze 声学专营店",
             "未申请",
             "AI_SERVING",
@@ -57,7 +59,8 @@ public class DemoChatStore {
             "CV202606270001",
             "TM202606270001",
             "20商城 青轴机械键盘",
-            "20商城演示店铺",
+            "20230141",
+            "极光外设旗舰店",
             "处理中",
             "AI_SERVING",
             "退货退款",
@@ -68,10 +71,26 @@ public class DemoChatStore {
                 new DemoMessage("tm-seed-4", "AI", "AI客服", "20商城订单 TM202606270001 当前售后状态为：处理中。", LocalDateTime.of(2026, 6, 27, 10, 35))
             )
         );
+        seedConversation(
+            4L,
+            "CV202606270002",
+            "TM202606270002",
+            "20商城 城市通勤背包",
+            "20230142",
+            "黑曜通勤箱包店",
+            "未申请",
+            "AI_SERVING",
+            "售后咨询",
+            List.of(
+                new DemoMessage("tm-bag-seed-1", "CONSUMER", "我", "这个背包防水吗？如果收到有破损可以售后吗？", LocalDateTime.of(2026, 6, 27, 11, 10)),
+                new DemoMessage("tm-bag-seed-2", "AI", "AI客服", "这款背包支持日常防泼水；如收到后存在破损、拉链异常或与描述不符，可在订单详情中申请售后并上传照片凭证。", LocalDateTime.of(2026, 6, 27, 11, 11))
+            )
+        );
     }
 
-    public synchronized List<DemoConversationResponse> listConversations() {
+    public synchronized List<DemoConversationResponse> listConversations(List<String> merchantAccounts) {
         return conversations.values().stream()
+            .filter(conversation -> merchantAccounts == null || merchantAccounts.isEmpty() || merchantAccounts.contains(conversation.merchantAccountNo()))
             .sorted(Comparator.comparing(DemoConversation::lastMessageAt).reversed())
             .map(this::toConversationResponse)
             .toList();
@@ -112,6 +131,7 @@ public class DemoChatStore {
             current.conversationNo(),
             current.orderNo(),
             current.productName(),
+            current.merchantAccountNo(),
             current.merchantName(),
             current.afterSaleStatus(),
             "AGENT_SERVING",
@@ -135,6 +155,7 @@ public class DemoChatStore {
         String conversationNo,
         String orderNo,
         String productName,
+        String merchantAccountNo,
         String merchantName,
         String afterSaleStatus,
         String status,
@@ -142,7 +163,7 @@ public class DemoChatStore {
         List<DemoMessage> messages
     ) {
         DemoMessage last = messages.get(messages.size() - 1);
-        conversations.put(orderNo, new DemoConversation(id, conversationNo, orderNo, productName, merchantName, afterSaleStatus, status, aiIntent, last.content(), last.createdAt()));
+        conversations.put(orderNo, new DemoConversation(id, conversationNo, orderNo, productName, merchantAccountNo, merchantName, afterSaleStatus, status, aiIntent, last.content(), last.createdAt()));
         messageMap.put(orderNo, new ArrayList<>(messages));
     }
 
@@ -153,6 +174,7 @@ public class DemoChatStore {
             conversation.conversationNo(),
             conversation.orderNo(),
             conversation.productName(),
+            conversation.merchantAccountNo(),
             conversation.merchantName(),
             conversation.afterSaleStatus(),
             conversation.status(),
@@ -188,6 +210,7 @@ public class DemoChatStore {
             conversation.conversationNo(),
             conversation.orderNo(),
             conversation.productName(),
+            conversation.merchantAccountNo(),
             conversation.merchantName(),
             conversation.afterSaleStatus(),
             conversation.status(),
@@ -230,6 +253,7 @@ public class DemoChatStore {
         String conversationNo,
         String orderNo,
         String productName,
+        String merchantAccountNo,
         String merchantName,
         String afterSaleStatus,
         String status,

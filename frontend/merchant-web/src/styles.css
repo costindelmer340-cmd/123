@@ -16,6 +16,10 @@ body {
   background: #14213d;
   color: #fff;
   border-right: 1px solid #22304f;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .brand {

@@ -49,6 +49,7 @@ ai-service/*.pyc
 database/*.bak
 database/*.dump
 database/*.sql.gz
+output/
 
 # Deployment
 deploy/.data/

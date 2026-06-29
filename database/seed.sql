@@ -35,25 +35,26 @@ INSERT INTO twenty_mall_account (
   id, account_no, password_plain, account_role, display_name, phone, bind_status, status
 ) VALUES
   (1, '20230140', '123456', 'CONSUMER', '20商城演示买家', '13338907581', 'UNBOUND', 'ACTIVE'),
-  (2, '20230141', '123456', 'MERCHANT', '20商城演示商家', '13900002020', 'UNBOUND', 'ACTIVE'),
+  (2, '20230141', '123456', 'MERCHANT', '极光外设旗舰店', '13900002020', 'UNBOUND', 'ACTIVE'),
+  (4, '20230142', '123456', 'MERCHANT', '黑曜通勤箱包店', '13900002021', 'UNBOUND', 'ACTIVE'),
   (3, '20230141', '123456', 'CONSUMER', '20商城学生买家', '13338907581', 'UNBOUND', 'ACTIVE');
 
 INSERT INTO twenty_mall_product (
   id, merchant_account_id, product_no, product_name, product_image_url, price, stock, category, description, status
 ) VALUES
   (1, 2, 'TM-P-10001', '20商城 青轴机械键盘', '/assets/products/twenty-keyboard.png', 459.00, 120, '电脑外设', '20商城本地数据库中的模拟机械键盘商品，用于售后、评价和客服演示。', 'ON_SALE'),
-  (2, 2, 'TM-P-10002', '20商城 城市通勤背包', '/assets/products/twenty-backpack.png', 189.00, 260, '箱包配饰', '20商城本地数据库中的模拟通勤背包商品。', 'ON_SALE'),
+  (2, 4, 'TM-P-10002', '20商城 城市通勤背包', '/assets/products/twenty-backpack.png', 189.00, 260, '箱包配饰', '20商城本地数据库中的模拟通勤背包商品。', 'ON_SALE'),
   (3, 2, 'TM-P-10003', '20商城 护眼台灯', '/assets/products/twenty-lamp.png', 129.00, 180, '生活电器', '20商城本地数据库中的模拟护眼台灯商品。', 'ON_SALE'),
   (4, 2, 'TM-P-10004', '20商城 便携保温杯', '/assets/products/twenty-cup.png', 69.00, 360, '日用百货', '20商城本地数据库中的模拟保温杯商品。', 'ON_SALE');
 
 INSERT INTO twenty_mall_order (
   id, order_no, consumer_account_id, merchant_account_id, order_status, pay_status, logistics_status,
-  after_sale_status, total_amount, paid_at, ordered_at
+  after_sale_status, total_amount, paid_at, ordered_at, delivered_at, policy_tags
 ) VALUES
-  (1, 'TM202606270001', 1, 2, 'COMPLETED', 'PAID', 'RECEIVED', 'AFTER_SALE', 459.00, '2026-06-26 10:10:00', '2026-06-26 10:00:00'),
-  (2, 'TM202606270002', 1, 2, 'SHIPPED', 'PAID', 'IN_TRANSIT', 'NONE', 189.00, '2026-06-26 12:10:00', '2026-06-26 12:00:00'),
-  (3, 'TM202606270003', 3, 2, 'COMPLETED', 'PAID', 'RECEIVED', 'NONE', 129.00, '2026-06-27 08:20:00', '2026-06-27 08:10:00'),
-  (4, 'TM202606270004', 3, 2, 'SHIPPED', 'PAID', 'IN_TRANSIT', 'AFTER_SALE', 69.00, '2026-06-27 09:40:00', '2026-06-27 09:30:00');
+  (1, 'TM202606270001', 1, 2, 'COMPLETED', 'PAID', 'RECEIVED', 'AFTER_SALE', 459.00, '2026-06-26 10:10:00', '2026-06-26 10:00:00', '2026-06-27 09:16:35', JSON_ARRAY('7天无理由退货', '运费险')),
+  (2, 'TM202606270002', 1, 4, 'SHIPPED', 'PAID', 'IN_TRANSIT', 'NONE', 189.00, '2026-06-26 12:10:00', '2026-06-26 12:00:00', NULL, JSON_ARRAY('7天无理由退货', '运费险', '15天价格保护')),
+  (3, 'TM202606270003', 3, 2, 'COMPLETED', 'PAID', 'RECEIVED', 'NONE', 129.00, '2026-06-27 08:20:00', '2026-06-27 08:10:00', '2026-06-28 11:05:22', JSON_ARRAY('7天无理由退货')),
+  (4, 'TM202606270004', 3, 2, 'SHIPPED', 'PAID', 'IN_TRANSIT', 'AFTER_SALE', 69.00, '2026-06-27 09:40:00', '2026-06-27 09:30:00', NULL, JSON_ARRAY('运费险'));
 
 INSERT INTO twenty_mall_order_item (
   id, order_id, product_id, product_name, sku_name, product_image_url, unit_price, quantity, total_amount, after_sale_status
@@ -81,13 +82,15 @@ INSERT INTO twenty_mall_review (
 INSERT INTO twenty_mall_review (
   id, order_id, product_id, consumer_account_id, product_score, service_score, content, status, reviewed_at
 ) VALUES
-  (2, 3, 3, 3, 5, 5, '台灯亮度柔和，晚上学习使用比较舒服。', 'PUBLISHED', '2026-06-27 10:30:00');
+  (2, 3, 3, 3, 5, 5, '台灯亮度柔和，晚上学习使用比较舒服。', 'PUBLISHED', '2026-06-27 10:30:00'),
+  (3, 2, 2, 1, 4, 5, '背包容量合适，日常通勤够用，客服回复也比较及时，希望后续能增加更多颜色选择。', 'PUBLISHED', '2026-06-28 14:20:00');
 
 INSERT INTO external_shop_binding (
   id, merchant_id, platform_id, platform_code, external_shop_id, shop_name, seller_nick, auth_status, last_synced_at
 ) VALUES
   (1, 1, 1, 'DOUYIN', 'DY_SHOP_10001', '星河数码抖音旗舰店', '星河数码官方', 'ACTIVE', '2026-06-25 10:00:00'),
-  (2, 1, 2, 'TWENTY_MALL', 'TM_SHOP_20230141', '20商城演示店铺', '20商城演示商家', 'ACTIVE', '2026-06-27 10:00:00');
+  (2, 1, 2, 'TWENTY_MALL', 'TM_SHOP_20230141', '极光外设旗舰店', '极光外设旗舰店', 'ACTIVE', '2026-06-27 10:00:00'),
+  (3, 1, 2, 'TWENTY_MALL', 'TM_SHOP_20230142', '黑曜通勤箱包店', '黑曜通勤箱包店', 'ACTIVE', '2026-06-27 17:10:00');
 
 INSERT INTO external_auth_token (
   id, shop_binding_id, access_token_cipher, refresh_token_cipher, access_token_expires_at,

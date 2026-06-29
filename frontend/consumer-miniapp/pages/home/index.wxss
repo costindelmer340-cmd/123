@@ -23,12 +23,24 @@
   text-align: center;
 }
 
+.platform-main {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  flex-direction: column;
+}
+
 .platform-card-wide {
   width: 100%;
-  min-height: 180rpx;
-  flex-direction: row;
-  justify-content: flex-start;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
   text-align: left;
+}
+
+.platform-card-wide .platform-main {
+  min-height: 120rpx;
+  flex-direction: row;
 }
 
 .platform-card-wide .platform-icon {
@@ -45,7 +57,8 @@
 }
 
 .platform-info {
-  flex: none;
+  flex: 1;
+  min-width: 0;
 }
 
 .arrow {
@@ -56,6 +69,7 @@
 
 .bind-btn {
   margin-left: auto;
+  flex-shrink: 0;
   width: 140rpx;
   height: 64rpx;
   line-height: 64rpx;
@@ -63,6 +77,43 @@
   background: #1f7ae0;
   color: #fff;
   font-size: 26rpx;
+}
+
+.bound-panel {
+  width: 100%;
+  margin-top: 20rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid #eef2f7;
+}
+
+.bound-title {
+  color: #667085;
+  font-size: 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.bound-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58rpx;
+  padding: 10rpx 14rpx;
+  margin-bottom: 10rpx;
+  border-radius: 12rpx;
+  background: #f8fbff;
+  color: #344054;
+  font-size: 26rpx;
+}
+
+.unbind-btn {
+  width: 104rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  margin: 0;
+  border-radius: 10rpx;
+  background: #fff1f0;
+  color: #d92d20;
+  font-size: 22rpx;
 }
 
 .dialog-mask {

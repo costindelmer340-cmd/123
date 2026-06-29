@@ -35,7 +35,7 @@
 
   <view class="chat-list">
     <view wx:for="{{messages}}" wx:key="index" class="msg-row {{item.role === 'user' ? 'msg-right' : 'msg-left'}}">
-      <view class="speaker">{{item.speaker}}</view>
+      <view class="speaker">{{item.speaker}} {{item.time}}</view>
       <view class="bubble {{item.role === 'user' ? 'bubble-user' : ''}}">
         {{item.content}}
       </view>

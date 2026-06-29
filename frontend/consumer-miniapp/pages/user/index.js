@@ -1,54 +1,93 @@
-import { getTwentyMallBinding } from "../../utils/auth"
+import { clearDemoToken, clearPrimaryAccountData, getTwentyMallBindings } from "../../utils/auth"
 
 const defaultProfile = {
   nickname: "consumer_demo",
   phone: "13338907581",
   avatar: "/assets/avatars/user.png",
   address: "",
-  bindPlatform: "未绑定",
+  bindPlatform: "未绑定电商平台",
   lastConsult: "暂无"
 }
 
 Page({
   data: {
-    profile: defaultProfile
+    profile: defaultProfile,
+    cancelDialogVisible: false,
+    cancelCountdown: 5,
+    cancelConfirmEnabled: false
+  },
+  onUnload() {
+    this.clearCancelTimer()
   },
   onShow() {
     const profile = wx.getStorageSync("consumerProfile")
-    const address = wx.getStorageSync("consumerAddress")
-    const binding = getTwentyMallBinding()
+    const addresses = wx.getStorageSync("consumerAddresses") || []
+    const oldAddress = wx.getStorageSync("consumerAddress")
+    const bindings = getTwentyMallBindings()
     const nextProfile = profile ? { ...defaultProfile, ...profile } : { ...defaultProfile }
     nextProfile.phone = "13338907581"
-    if (address && address.fullAddress) {
-      nextProfile.address = address.fullAddress
+    nextProfile.bindPlatform = bindings.length ? `已绑定 ${bindings.length} 个电商账号` : "未绑定电商平台"
+    const defaultAddress = addresses.find((item) => item.isDefault) || addresses[0] || oldAddress
+    if (defaultAddress && defaultAddress.fullAddress) {
+      nextProfile.address = defaultAddress.fullAddress
     }
     this.setData({ profile: nextProfile })
-    if (binding && binding.platform === "20商城") {
-      wx.request({
-        url: `http://localhost:8080/api/twenty-mall/profile?accountNo=${binding.accountNo}&role=CONSUMER`,
-        success: (res) => {
-          const data = res.data && res.data.data
-          if (data) {
-            this.setData({
-              profile: {
-                ...this.data.profile,
-                nickname: data.displayName,
-                phone: data.phone,
-                avatar: data.avatar || "/assets/avatars/twenty-user.png",
-                address: data.address || "四川省成都市高新区20商城模拟社区 2023号",
-                bindPlatform: "20商城",
-                lastConsult: "2026-06-27 11:20:00"
-              }
-            })
-          }
-        }
-      })
-    }
   },
   editProfile() {
     wx.navigateTo({ url: "/pages/profile-edit/index" })
   },
   manageAddress() {
     wx.navigateTo({ url: "/pages/address/index" })
+  },
+  logout() {
+    wx.showModal({
+      title: "退出登录",
+      content: "确定要退出当前账号吗？",
+      confirmText: "退出",
+      success: (res) => {
+        if (!res.confirm) return
+        clearDemoToken()
+        wx.reLaunch({ url: "/pages/login/index" })
+      }
+    })
+  },
+  openCancelAccountDialog() {
+    this.clearCancelTimer()
+    this.setData({
+      cancelDialogVisible: true,
+      cancelCountdown: 5,
+      cancelConfirmEnabled: false
+    })
+    this.cancelTimer = setInterval(() => {
+      const next = this.data.cancelCountdown - 1
+      if (next <= 0) {
+        this.clearCancelTimer()
+        this.setData({
+          cancelCountdown: 0,
+          cancelConfirmEnabled: true
+        })
+        return
+      }
+      this.setData({ cancelCountdown: next })
+    }, 1000)
+  },
+  closeCancelAccountDialog() {
+    this.clearCancelTimer()
+    this.setData({
+      cancelDialogVisible: false,
+      cancelCountdown: 5,
+      cancelConfirmEnabled: false
+    })
+  },
+  confirmCancelAccount() {
+    if (!this.data.cancelConfirmEnabled) return
+    clearPrimaryAccountData()
+    wx.reLaunch({ url: "/pages/login/index" })
+  },
+  clearCancelTimer() {
+    if (this.cancelTimer) {
+      clearInterval(this.cancelTimer)
+      this.cancelTimer = null
+    }
   }
 })

@@ -12,13 +12,22 @@
       bindtap="bindPlatform"
       data-name="{{item.name}}"
     >
-      <image class="platform-icon" src="{{item.icon}}" mode="aspectFill" />
-      <view class="platform-info">
-        <view class="sub-title">{{item.name}}</view>
-        <view class="muted">{{item.status}}</view>
+      <view class="platform-main">
+        <image class="platform-icon" src="{{item.icon}}" mode="aspectFill" />
+        <view class="platform-info">
+          <view class="sub-title">{{item.name}}</view>
+          <view class="muted">{{item.status}}</view>
+        </view>
+        <button wx:if="{{item.name === '20商城'}}" class="bind-btn" catchtap="bindPlatform" data-name="{{item.name}}">绑定</button>
+        <view class="arrow">›</view>
       </view>
-      <button wx:if="{{item.name === '20商城'}}" class="bind-btn" catchtap="bindPlatform" data-name="{{item.name}}">绑定</button>
-      <view class="arrow">›</view>
+      <view wx:if="{{item.name === '20商城' && twentyMallBindings.length}}" class="bound-panel">
+        <view class="bound-title">已绑定账号</view>
+        <view wx:for="{{twentyMallBindings}}" wx:key="accountNo" class="bound-account">
+          <text>{{item.accountNo}}</text>
+          <button class="unbind-btn" catchtap="unbindTwentyMall" data-account="{{item.accountNo}}">解绑</button>
+        </view>
+      </view>
     </view>
   </view>
 

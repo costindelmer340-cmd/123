@@ -52,7 +52,7 @@ function login() {
       merchantId: 1,
       roles: ['MERCHANT_ADMIN']
     })
-    router.push('/dashboard')
+    router.push('/platform')
   } finally {
     loading.value = false
   }

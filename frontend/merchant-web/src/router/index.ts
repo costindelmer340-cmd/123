@@ -9,7 +9,7 @@ import ConversationsView from '../views/ConversationsView.vue'
 import TicketsView from '../views/TicketsView.vue'
 import ReviewsView from '../views/ReviewsView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
-import { getToken } from '../utils/auth'
+import { getToken, hasMerchantBinding } from '../utils/auth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -40,7 +40,13 @@ router.beforeEach((to) => {
     return '/login'
   }
   if (to.path === '/login' && token) {
-    return '/dashboard'
+    return hasMerchantBinding() ? '/dashboard' : '/platform'
+  }
+  if (token && to.path !== '/platform' && !hasMerchantBinding()) {
+    return {
+      path: '/platform',
+      query: { needBind: '1', redirect: to.fullPath }
+    }
   }
   return true
 })

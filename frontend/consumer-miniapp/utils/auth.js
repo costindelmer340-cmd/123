@@ -44,6 +44,12 @@ export function saveTwentyMallBinding(binding) {
   wx.removeStorageSync("twentyMallBinding")
 }
 
+export function removeTwentyMallBinding(accountNo) {
+  const nextBindings = getTwentyMallBindings().filter((item) => item.accountNo !== accountNo)
+  wx.setStorageSync(getTwentyMallBindingKey(), nextBindings)
+  wx.removeStorageSync("twentyMallBinding")
+}
+
 export function clearTwentyMallBinding(phone = getPrimaryPhone()) {
   wx.removeStorageSync(getTwentyMallBindingKey(phone))
   wx.removeStorageSync("twentyMallBinding")
@@ -55,4 +61,15 @@ export function getDemoToken() {
 
 export function clearDemoToken() {
   wx.removeStorageSync('miniapp_token')
+}
+
+export function clearPrimaryAccountData() {
+  const phone = getPrimaryPhone()
+  clearTwentyMallBinding(phone)
+  wx.removeStorageSync("primaryAccount")
+  wx.removeStorageSync("consumerProfile")
+  wx.removeStorageSync("consumerAddresses")
+  wx.removeStorageSync("consumerAddress")
+  wx.removeStorageSync("pendingChatOrderNo")
+  clearDemoToken()
 }

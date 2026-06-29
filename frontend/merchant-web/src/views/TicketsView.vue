@@ -7,9 +7,15 @@
     <el-table v-loading="loading" :data="filteredTickets">
       <el-table-column prop="ticketNo" label="工单号" min-width="170" />
       <el-table-column prop="title" label="标题" min-width="220" />
-      <el-table-column prop="ticketType" label="类型" width="130" />
-      <el-table-column prop="status" label="状态" width="130" />
-      <el-table-column prop="priority" label="优先级" width="100" />
+      <el-table-column label="类型" width="130">
+        <template #default="{ row }">{{ ticketTypeText(row.ticketType) }}</template>
+      </el-table-column>
+      <el-table-column label="状态" width="130">
+        <template #default="{ row }">{{ ticketStatusText(row.status) }}</template>
+      </el-table-column>
+      <el-table-column label="优先级" width="100">
+        <template #default="{ row }">{{ priorityText(row.priority) }}</template>
+      </el-table-column>
       <el-table-column prop="assignee" label="处理人" width="120" />
       <el-table-column prop="flowRemark" label="流转备注" min-width="200" />
       <el-table-column prop="dueAt" label="截止时间" min-width="160" />
@@ -90,6 +96,7 @@ function createTicket() {
       priority: ticketForm.value.priority,
       assignee: '客服一组',
       flowRemark: '新建工单，待分派处理',
+      createdAt: nowText(),
       dueAt: '2026-06-26 18:00:00'
     },
     ...ticketData.value
@@ -109,7 +116,8 @@ function transferTicket(ticketId: number) {
       ...item,
       status: next.status,
       assignee: next.assignee,
-      flowRemark: next.remark
+      flowRemark: next.remark,
+      ...(next.status === 'RESOLVED' ? { completedAt: nowText() } : {})
     }
   })
   ElMessage({ type: 'success', message: '工单已流转到下一处理节点' })
@@ -124,7 +132,8 @@ function closeTicket(ticketId: number) {
       ...item,
       status: 'CLOSED',
       assignee: '客服主管',
-      flowRemark: '工单已关闭，处理结果已归档'
+      flowRemark: '工单已关闭，处理结果已归档',
+      completedAt: nowText()
     }
   })
   ElMessage({ type: 'success', message: '工单已关闭' })
@@ -141,5 +150,43 @@ function getNextTicketFlow(status: string) {
     return { status: 'RESOLVED', assignee: '客服主管', remark: '处理方案已确认，等待关闭' }
   }
   return { status, assignee: '客服主管', remark: '当前工单已在最终节点' }
+}
+
+function nowText() {
+  const now = new Date()
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+}
+
+function ticketTypeText(value: string) {
+  const map: Record<string, string> = {
+    AFTER_SALE: '售后问题',
+    CONSULT: '咨询问题',
+    REVIEW_RISK: '评价风险',
+    COMPLAINT: '投诉处理',
+    LOGISTICS: '物流问题'
+  }
+  return map[value] || value
+}
+
+function ticketStatusText(value: string) {
+  const map: Record<string, string> = {
+    OPEN: '待处理',
+    IN_PROGRESS: '处理中',
+    PENDING: '待复核',
+    RESOLVED: '已解决',
+    CLOSED: '已关闭'
+  }
+  return map[value] || value
+}
+
+function priorityText(value: string) {
+  const map: Record<string, string> = {
+    HIGH: '高',
+    MEDIUM: '中',
+    NORMAL: '普通',
+    LOW: '低'
+  }
+  return map[value] || value
 }
 </script>

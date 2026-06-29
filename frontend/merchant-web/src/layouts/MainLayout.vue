@@ -8,8 +8,8 @@
           <span>Douyin After-sale</span>
         </div>
       </div>
-      <el-menu router :default-active="$route.path" class="nav-menu">
-        <el-menu-item v-for="item in navItems" :key="item.path" :index="item.path">
+      <el-menu :default-active="$route.path" class="nav-menu">
+        <el-menu-item v-for="item in navItems" :key="item.path" :index="item.path" @click="goNav(item.path)">
           <component :is="item.icon" class="nav-icon" />
           <span>{{ item.label }}</span>
         </el-menu-item>
@@ -18,7 +18,7 @@
     <el-container>
       <el-header class="topbar">
         <div>
-          <div class="page-kicker">星河数码抖音旗舰店</div>
+          <div class="page-kicker">{{ bindingCount > 0 ? `已绑定 ${bindingCount} 个电商店铺` : '请先绑定电商平台商家账号' }}</div>
           <h1>{{ currentTitle }}</h1>
         </div>
         <div class="top-actions">
@@ -35,10 +35,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { BarChart3, BookOpen, Bot, ClipboardList, Headphones, PackageSearch, RefreshCcw, Store } from 'lucide-vue-next'
-import { clearAuth, getStoredUser, getToken } from '../utils/auth'
+import { clearAuth, getMerchantBindings, getStoredUser, getToken } from '../utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -55,13 +56,32 @@ const navItems = [
 
 const currentTitle = computed(() => navItems.find((item) => item.path === route.path)?.label ?? '工作台')
 const isDemoMode = computed(() => getToken() === 'demo-token')
+const bindingCount = ref(getMerchantBindings().length)
 const avatarText = computed(() => {
   const user = getStoredUser<{ nickname?: string; username?: string }>()
   return (user?.nickname || user?.username || '商').slice(0, 1)
 })
 
+watch(
+  () => route.fullPath,
+  () => {
+    bindingCount.value = getMerchantBindings().length
+  },
+  { immediate: true }
+)
+
 function logout() {
   clearAuth()
   router.push('/login')
+}
+
+function goNav(path: string) {
+  bindingCount.value = getMerchantBindings().length
+  if (path !== '/platform' && bindingCount.value <= 0) {
+    ElMessage({ type: 'warning', message: '需要绑定至少一个电商平台商家账号才能进入该页面' })
+    router.push('/platform')
+    return
+  }
+  router.push(path)
 }
 </script>

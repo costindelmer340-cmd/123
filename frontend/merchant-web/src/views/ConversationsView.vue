@@ -1,5 +1,5 @@
 <template>
-  <div class="split-grid">
+  <div class="conversation-grid">
     <div class="panel">
       <h2 class="section-title">会话列表</h2>
       <div
@@ -7,11 +7,11 @@
         :key="item.id"
         class="status-line clickable-line"
         :class="{ active: selectedConversation?.id === item.id }"
-        @click="selectedConversation = item"
+        @click="selectConversation(item)"
       >
         <div>
-          <strong>{{ item.conversationNo }}</strong>
-          <div class="page-kicker">{{ item.orderNo }} · {{ item.productName }}</div>
+          <strong>{{ conversationTitle(item) }}</strong>
+          <div class="page-kicker">{{ item.orderNo }} · {{ cleanProductName(item.productName) }}</div>
           <div class="page-kicker">{{ item.aiIntent }} · {{ formatStatus(item.status) }} · {{ item.lastMessageAt }}</div>
         </div>
         <el-tag>{{ formatStatus(item.status) }}</el-tag>
@@ -20,10 +20,10 @@
     <div class="panel">
       <h2 class="section-title">聊天窗口</h2>
       <div class="page-kicker">
-        {{ selectedConversation?.conversationNo || '请选择会话' }}
         <template v-if="selectedConversation">
-          ｜{{ selectedConversation.orderNo }}｜{{ selectedConversation.merchantName }}
+          {{ conversationTitle(selectedConversation) }}｜{{ selectedConversation.orderNo }}｜{{ cleanProductName(selectedConversation.productName) }}
         </template>
+        <template v-else>请选择会话</template>
       </div>
       <div class="chat-box">
         <div
@@ -32,7 +32,7 @@
           class="message-row"
           :class="{ right: message.senderType === 'STAFF' }"
         >
-          <div class="speaker">{{ speakerText(message.senderType) }}</div>
+          <div class="speaker">{{ speakerText(message.senderType) }} {{ formatMessageTime(message.createdAt) }}</div>
           <div class="bubble" :class="message.senderType.toLowerCase()">
             {{ message.content }}
           </div>
@@ -50,12 +50,15 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { conversations } from '../data/mock'
 import { ElMessage } from 'element-plus'
+import { getMerchantBindings } from '../utils/auth'
 
 type DemoConversation = {
   id: number
   conversationNo: string
   orderNo: string
   productName: string
+  platformName?: string
+  merchantAccountNo?: string
   merchantName: string
   afterSaleStatus: string
   status: string
@@ -93,14 +96,24 @@ onUnmounted(() => {
   window.clearInterval(pollingTimer)
 })
 
-watch(selectedConversation, () => {
-  replyContent.value = ''
+watch(selectedConversation, (next, previous) => {
+  if (next?.orderNo !== previous?.orderNo) {
+    replyContent.value = ''
+  }
   loadMessages()
 })
 
+function selectConversation(conversation: DemoConversation) {
+  selectedConversation.value = conversation
+}
+
 async function loadConversations(showError = true) {
   try {
-    const response = await fetch('/api/demo-chat/conversations')
+    const accounts = getMerchantBindings()
+      .filter((item) => item.platformCode === 'TWENTY_MALL' && item.accountNo)
+      .map((item) => `merchantAccounts=${encodeURIComponent(item.accountNo as string)}`)
+      .join('&')
+    const response = await fetch(`/api/demo-chat/conversations${accounts ? `?${accounts}` : ''}`)
     const payload = await response.json()
     conversationData.value = payload.data || []
     if (selectedConversation.value) {
@@ -113,6 +126,7 @@ async function loadConversations(showError = true) {
       conversationNo: item.conversationNo,
       orderNo: item.orderNo || 'DY202606250001',
       productName: item.productName || 'Aurora X1 智能手机',
+      platformName: '抖音商城',
       merchantName: item.merchantName || '星链数码旗舰店',
       afterSaleStatus: item.afterSaleStatus || '处理中',
       status: item.status,
@@ -182,6 +196,23 @@ function formatStatus(status: string) {
   return statusMap[status] || status
 }
 
+function conversationTitle(conversation: DemoConversation) {
+  return `${conversation.platformName || '20商城'} · ${conversation.merchantName}`
+}
+
+function cleanProductName(productName: string) {
+  return productName.replace(/^20商城\s*/, '').trim()
+}
+
+function formatMessageTime(value?: string) {
+  if (!value) return ''
+  const text = String(value).replace('T', ' ').replace(/\.\d+$/, '')
+  const match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/)
+  if (!match) return text
+  const [, year, month, day, hour, minute, second = '00'] = match
+  return `${year}.${Number(month)}.${Number(day)} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`
+}
+
 function speakerText(senderType: string) {
   const speakerMap: Record<string, string> = {
     CONSUMER: '用户',
@@ -193,8 +224,15 @@ function speakerText(senderType: string) {
 </script>
 
 <style scoped>
+.conversation-grid {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
 .chat-box {
-  height: 330px;
+  height: 460px;
   overflow: auto;
   border: 1px solid #e4e8f0;
   border-radius: 8px;
@@ -252,5 +290,11 @@ function speakerText(senderType: string) {
 .clickable-line.active {
   background: #eef6ff;
   border-color: #b7d8ff;
+}
+
+@media (max-width: 1200px) {
+  .conversation-grid {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
 }
 </style>

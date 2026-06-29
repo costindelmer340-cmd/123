@@ -10,7 +10,10 @@ export const orders = [
     imageText: "手机",
     image: "/assets/products/phone.png",
     spec: "星河银｜12GB+256GB",
-    service: "屏幕划痕 / 退货退款"
+    service: "屏幕划痕 / 退货退款",
+    orderedAt: "2026.6.25 10:00:00",
+    deliveredAt: "2026.6.26 15:42:18",
+    policyTags: ["7天无理由退货", "运费险", "15天价格保护"]
   },
   {
     no: "DY202606250002",
@@ -23,7 +26,10 @@ export const orders = [
     imageText: "耳机",
     image: "/assets/products/headphone.png",
     spec: "银黑色｜APP 升级版",
-    service: "可申请售后"
+    service: "可申请售后",
+    orderedAt: "2026.6.25 16:18:36",
+    deliveredAt: "",
+    policyTags: ["7天无理由退货", "运费险"]
   }
 ]
 

@@ -1,5 +1,8 @@
 package com.example.mall.module.customer.demo;
 
+import com.example.mall.module.ai.dto.AiReplyRequest;
+import com.example.mall.module.ai.dto.ReplyResponse;
+import com.example.mall.module.ai.service.AiService;
 import com.example.mall.module.customer.demo.DemoChatController.DemoChatMessageRequest;
 import com.example.mall.module.customer.demo.DemoChatController.DemoChatMessageResponse;
 import com.example.mall.module.customer.demo.DemoChatController.DemoConversationResponse;
@@ -20,8 +23,11 @@ public class DemoChatStore {
 
     private final Map<String, DemoConversation> conversations = new LinkedHashMap<>();
     private final Map<String, List<DemoMessage>> messageMap = new LinkedHashMap<>();
+    
+    private final AiService aiService;
 
-    public DemoChatStore() {
+    public DemoChatStore(AiService aiService) {
+        this.aiService = aiService;
         seedConversation(
             1L,
             "CV202606250001",
@@ -186,14 +192,38 @@ public class DemoChatStore {
 
     private DemoMessage buildAiReply(DemoConversation conversation, String content) {
         String reply = "我已收到你的问题，会结合订单和售后规则为你查询。";
-        if (content.contains("退货政策") || content.contains("七天无理由")) {
-            reply = "当前退货政策为：签收 7 天内，商品不影响二次销售且包装配件完整时可申请退货；如商品存在质量问题，请上传商品照片和包装照片，商家审核通过后进入退货退款流程。";
-        } else if (content.contains("退款") || content.contains("进度")) {
-            reply = "你可以在订单详情中查看售后进度。当前订单 " + conversation.orderNo() + " 的售后状态为：" + conversation.afterSaleStatus() + "。";
-        } else if (content.contains("订单号")) {
-            reply = "我已识别到当前咨询订单：" + conversation.orderNo() + "，商品为：" + conversation.productName() + "。";
+        
+        try {
+            AiReplyRequest request = new AiReplyRequest(
+                content,
+                null,
+                null,
+                null,
+                null,
+                conversation.afterSaleStatus(),
+                null
+            );
+            ReplyResponse response = aiService.generateReply(request);
+            
+            if (response != null && response.reply() != null && !response.reply().isEmpty()) {
+                reply = response.reply();
+            }
+        } catch (Exception e) {
+            reply = getFallbackReply(conversation, content);
         }
+        
         return new DemoMessage("ai-" + System.currentTimeMillis(), "AI", "AI客服", reply, LocalDateTime.now());
+    }
+
+    private String getFallbackReply(DemoConversation conversation, String content) {
+        if (content.contains("退货政策") || content.contains("七天无理由")) {
+            return "当前退货政策为：签收 7 天内，商品不影响二次销售且包装配件完整时可申请退货；如商品存在质量问题，请上传商品照片和包装照片，商家审核通过后进入退货退款流程。";
+        } else if (content.contains("退款") || content.contains("进度")) {
+            return "你可以在订单详情中查看售后进度。当前订单 " + conversation.orderNo() + " 的售后状态为：" + conversation.afterSaleStatus() + "。";
+        } else if (content.contains("订单号")) {
+            return "我已识别到当前咨询订单：" + conversation.orderNo() + "，商品为：" + conversation.productName() + "。";
+        }
+        return "我已收到你的问题，会结合订单和售后规则为你查询。";
     }
 
     private DemoConversation requireConversation(String orderNo) {

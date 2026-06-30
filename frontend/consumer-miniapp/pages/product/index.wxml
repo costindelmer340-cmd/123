@@ -61,7 +61,37 @@
     bindtap="modifyAfterSale"
   >修改售后信息</button>
   <button class="contact-btn" bindtap="contactMerchant">联系商家</button>
-  <button class="review-btn" bindtap="openReviewDialog">评价商家</button>
+  <button class="review-btn {{product.reviewed ? 'review-btn-disabled' : ''}}" bindtap="openReviewDialog">
+    {{product.reviewed ? '已评价' : '评价商家'}}
+  </button>
+
+  <view wx:if="{{reasonDialogVisible}}" class="reason-mask">
+    <view class="reason-dialog">
+      <view class="review-title">填写申请原因</view>
+      <view class="reason-subtitle">请说明申请{{reasonForm.type}}的具体原因</view>
+      <textarea
+        class="reason-textarea"
+        placeholder="例如：商品破损、功能异常、未收到货等"
+        maxlength="200"
+        value="{{reasonText}}"
+        bindinput="onReasonInput"
+      />
+      <view class="upload-row">
+        <button class="upload-btn" bindtap="chooseReasonImage">上传照片</button>
+        <text class="upload-tip">最多3张，用于辅助商家审核</text>
+      </view>
+      <view class="image-list" wx:if="{{reasonImages.length}}">
+        <view wx:for="{{reasonImages}}" wx:key="index" class="image-item">
+          <image src="{{item}}" mode="aspectFill" />
+          <text data-index="{{index}}" bindtap="removeReasonImage">×</text>
+        </view>
+      </view>
+      <view class="review-actions">
+        <button class="review-cancel" bindtap="closeReasonDialog">取消</button>
+        <button class="review-submit" bindtap="submitReasonDialog">提交</button>
+      </view>
+    </view>
+  </view>
 
   <view wx:if="{{afterSaleDetailVisible}}" class="after-sale-mask">
     <view class="after-sale-dialog">
@@ -86,6 +116,18 @@
         <text class="muted">售后状态</text>
         <text>{{product.afterSale}}</text>
       </view>
+      <view class="after-sale-row" wx:if="{{afterSaleDetail.reason}}">
+        <text class="muted">申请原因</text>
+        <text>{{afterSaleDetail.reason}}</text>
+      </view>
+      <view class="after-sale-images" wx:if="{{afterSaleDetail.evidenceImages && afterSaleDetail.evidenceImages.length}}">
+        <view class="muted">凭证照片</view>
+        <view class="image-list">
+          <view wx:for="{{afterSaleDetail.evidenceImages}}" wx:key="index" class="image-item readonly">
+            <image src="{{item}}" mode="aspectFill" />
+          </view>
+        </view>
+      </view>
       <view class="after-sale-row">
         <text class="muted">申请时间</text>
         <text>{{afterSaleDetail.appliedAt || '2026.6.29 10:35:23'}}</text>
@@ -97,24 +139,46 @@
 
   <view wx:if="{{reviewVisible}}" class="review-mask">
     <view class="review-dialog">
-      <view class="review-title">评价商家</view>
+      <view class="review-title">订单评价</view>
       <view class="review-merchant">{{product.merchant}}</view>
-      <view class="star-row">
-        <text
-          wx:for="{{reviewStars}}"
-          wx:key="value"
-          data-score="{{item.value}}"
-          class="star {{item.active ? 'star-active' : ''}}"
-          bindtap="setReviewScore"
-        >★</text>
+      <view class="review-section">
+        <view class="review-section-title">产品质量评价</view>
+        <view class="star-row">
+          <text
+            wx:for="{{productReviewStars}}"
+            wx:key="value"
+            data-score="{{item.value}}"
+            class="star {{item.active ? 'star-active' : ''}}"
+            bindtap="setProductReviewScore"
+          >★</text>
+        </view>
+        <textarea
+          class="review-textarea"
+          placeholder="请描述商品质量、包装、使用体验等情况"
+          maxlength="200"
+          value="{{productReviewText}}"
+          bindinput="onProductReviewInput"
+        />
       </view>
-      <textarea
-        class="review-textarea"
-        placeholder="请描述本次商家服务体验"
-        maxlength="200"
-        value="{{reviewText}}"
-        bindinput="onReviewInput"
-      />
+      <view class="review-section">
+        <view class="review-section-title">商家服务评价</view>
+        <view class="star-row">
+          <text
+            wx:for="{{merchantReviewStars}}"
+            wx:key="value"
+            data-score="{{item.value}}"
+            class="star {{item.active ? 'star-active' : ''}}"
+            bindtap="setMerchantReviewScore"
+          >★</text>
+        </view>
+        <textarea
+          class="review-textarea"
+          placeholder="请描述商家沟通、响应速度、售后服务等体验"
+          maxlength="200"
+          value="{{merchantReviewText}}"
+          bindinput="onMerchantReviewInput"
+        />
+      </view>
       <view class="review-actions">
         <button class="review-cancel" bindtap="closeReviewDialog">取消</button>
         <button class="review-submit" bindtap="submitReview">提交评价</button>

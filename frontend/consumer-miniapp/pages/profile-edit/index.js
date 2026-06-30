@@ -1,17 +1,21 @@
+import { getConsumerProfile, getPrimaryPhone, saveConsumerProfile } from "../../utils/auth"
+
 Page({
   data: {
     form: {
-      nickname: "consumer_demo",
-      avatar: "/assets/avatars/user.png"
+      nickname: "",
+      avatar: ""
     },
-    phone: "13338907581"
+    phone: ""
   },
   onLoad() {
-    const profile = wx.getStorageSync("consumerProfile")
+    const profile = getConsumerProfile()
+    const phone = getPrimaryPhone()
+    this.setData({ phone: phone === "guest" ? "" : phone })
     if (profile) {
       this.setData({
         form: {
-          nickname: profile.nickname || this.data.form.nickname,
+          nickname: profile.nickname || "",
           avatar: profile.avatar || this.data.form.avatar
         }
       })
@@ -37,7 +41,7 @@ Page({
     })
   },
   saveProfile() {
-    wx.setStorageSync("consumerProfile", this.data.form)
+    saveConsumerProfile(this.data.form)
     wx.showToast({ title: "资料已保存", icon: "success" })
     setTimeout(() => wx.navigateBack(), 500)
   }

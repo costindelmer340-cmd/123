@@ -28,8 +28,8 @@
         <h2 class="section-title">服务动态</h2>
         <div v-for="item in conversationData" :key="item.id" class="status-line">
           <div>
-            <strong>{{ item.conversationNo }}</strong>
-            <div class="page-kicker">{{ item.lastMessage }}</div>
+            <strong>{{ serviceOrderNo(item) }}</strong>
+            <div class="page-kicker">{{ latestUserMessage(item) }}</div>
           </div>
           <el-tag>{{ conversationStatusText(item.status) }}</el-tag>
         </div>
@@ -40,57 +40,46 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { loadAfterSales, loadConversations, loadReviews, loadTickets } from '../api'
-import { loadListWithFallback } from '../api/normalize'
-import { afterSales, conversations, reviews, tickets } from '../data/mock'
+import { loadDemoChatConversations, loadTwentyMallMerchantAfterSales, loadTwentyMallMerchantReviews } from '../api'
+import { ElMessage } from 'element-plus'
+import { afterSales, conversations, reviews } from '../data/mock'
+import { getMerchantBindings } from '../utils/auth'
 
-const afterSaleData = ref<typeof afterSales>(afterSales)
-const conversationData = ref<typeof conversations>(conversations)
-const reviewData = ref<typeof reviews>(reviews)
-const ticketData = ref<typeof tickets>(tickets)
+const afterSaleData = ref<typeof afterSales>([])
+const conversationData = ref<typeof conversations>([])
+const reviewData = ref<typeof reviews>([])
 const loading = ref(false)
 
 onMounted(async () => {
   loading.value = true
-  const [loadedAfterSales, loadedConversations, loadedReviews, loadedTickets] = await Promise.all([
-    loadListWithFallback(() => loadAfterSales({ status: 'PENDING_REVIEW' }), afterSales),
-    loadListWithFallback(() => loadConversations(), conversations),
-    loadListWithFallback(() => loadReviews(), reviews),
-    loadListWithFallback(() => loadTickets(), tickets)
-  ])
-  afterSaleData.value = loadedAfterSales.slice(0, 8)
-  conversationData.value = loadedConversations.slice(0, 6)
-  reviewData.value = loadedReviews
-  ticketData.value = loadedTickets
+  try {
+    const merchantAccounts = boundMerchantAccounts()
+    const [loadedAfterSales, loadedConversations, loadedReviews] = await Promise.all([
+      Promise.all(merchantAccounts.map((accountNo) => loadTwentyMallMerchantAfterSales(accountNo))),
+      loadDemoChatConversations(merchantAccounts),
+      Promise.all(merchantAccounts.map((accountNo) => loadTwentyMallMerchantReviews(accountNo)))
+    ])
+    afterSaleData.value = loadedAfterSales.flat().slice(0, 8) as typeof afterSales
+    conversationData.value = (loadedConversations as typeof conversations).slice(0, 6)
+    reviewData.value = loadedReviews.flat() as typeof reviews
+  } catch {
+    afterSaleData.value = []
+    conversationData.value = []
+    reviewData.value = []
+    ElMessage({ type: 'error', message: '工作台数据读取失败，请确认后端服务和数据库已启动' })
+  }
   loading.value = false
 })
 
 const pendingAfterSaleCount = computed(() => afterSaleData.value.filter((item) => !['COMPLETED', 'CLOSED', 'REJECTED'].includes(item.status)).length)
 const todayConversationCount = computed(() => conversationData.value.length)
 const highRiskReviewCount = computed(() => reviewData.value.filter((item) => item.riskLevel === 'HIGH').length)
-const onTimeCompletedTicketCount = computed(() => ticketData.value.filter((item) => isTicketCompletedWithin24Hours(item)).length)
-const onTimeTicketRate = computed(() => {
-  const total = ticketData.value.length
-  if (!total) {
-    return '100%'
-  }
-  const rate = Math.round((onTimeCompletedTicketCount.value / total) * 100)
-  return `${rate}%`
-})
 
 const metrics = computed(() => [
   { label: '待处理售后', value: String(pendingAfterSaleCount.value), trend: `共 ${afterSaleData.value.length} 单`, tone: 'warning' },
   { label: '今日会话', value: String(todayConversationCount.value), trend: `共 ${conversationData.value.length} 条`, tone: 'primary' },
-  { label: '高风险评价', value: String(highRiskReviewCount.value), trend: `共 ${reviewData.value.length} 条`, tone: highRiskReviewCount.value ? 'danger' : 'success' },
-  { label: '工单按时率', value: onTimeTicketRate.value, trend: `24小时内 ${onTimeCompletedTicketCount.value}/${ticketData.value.length}`, tone: onTimeTicketTone.value }
+  { label: '高风险评价', value: String(highRiskReviewCount.value), trend: `共 ${reviewData.value.length} 条`, tone: highRiskReviewCount.value ? 'danger' : 'success' }
 ])
-
-const onTimeTicketTone = computed(() => {
-  const rate = Number(onTimeTicketRate.value.replace('%', ''))
-  if (rate >= 90) return 'success'
-  if (rate >= 60) return 'warning'
-  return 'danger'
-})
 
 function tagType(tone: string) {
   return tone === 'danger' ? 'danger' : tone === 'warning' ? 'warning' : tone === 'success' ? 'success' : 'primary'
@@ -139,31 +128,18 @@ function conversationStatusText(value: string) {
   return map[value] || value
 }
 
-type TicketForRate = typeof tickets[number] & {
-  completedAt?: string
-  resolvedAt?: string
-  closedAt?: string
+function boundMerchantAccounts() {
+  return getMerchantBindings()
+    .filter((item) => item.platformCode === 'TWENTY_MALL' && item.accountNo)
+    .map((item) => item.accountNo as string)
 }
 
-function isTicketCompletedWithin24Hours(ticket: TicketForRate) {
-  if (!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(ticket.status)) {
-    return false
-  }
-  const start = parseDateTime(ticket.createdAt)
-  const completed = parseDateTime(ticket.completedAt || ticket.resolvedAt || ticket.closedAt)
-  if (!start || !completed) {
-    return false
-  }
-  const hours = (completed.getTime() - start.getTime()) / (1000 * 60 * 60)
-  return hours >= 0 && hours <= 24
+function serviceOrderNo(item: typeof conversations[number]) {
+  return item.orderNo || item.conversationNo
 }
 
-function parseDateTime(value?: string) {
-  if (!value) {
-    return null
-  }
-  const normalized = value.replace(/\./g, '-')
-  const date = new Date(normalized)
-  return Number.isNaN(date.getTime()) ? null : date
+function latestUserMessage(item: typeof conversations[number]) {
+  return item.lastMessage || '暂无用户消息'
 }
+
 </script>

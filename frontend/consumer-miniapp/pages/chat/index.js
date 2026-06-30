@@ -1,4 +1,4 @@
-import { getTwentyMallBindings } from "../../utils/auth"
+import { getPrimaryPhone, getTwentyMallBindings } from "../../utils/auth"
 import { enrichOrderDisplay } from "../../utils/order-display"
 
 const API_BASE = "http://localhost:8080/api/demo-chat"
@@ -198,7 +198,12 @@ Page({
       url: `${API_BASE}/conversations/${this.data.activeOrderNo}/messages`,
       success: (res) => {
         const list = (res.data && res.data.data) || []
-        this.setData({ messages: list.map(normalizeMessage) })
+        const messages = list.map(normalizeMessage)
+        const latestUserMessage = messages.filter((item) => item.role === "user" && item.time).pop()
+        if (latestUserMessage) {
+          wx.setStorageSync(`consumerLastConsultAt:${getPrimaryPhone()}`, latestUserMessage.time)
+        }
+        this.setData({ messages })
       }
     })
   },

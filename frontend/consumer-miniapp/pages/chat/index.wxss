@@ -2,6 +2,15 @@
   padding-bottom: 150rpx;
 }
 
+.chat-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  padding-top: 4rpx;
+  padding-bottom: 8rpx;
+  background: #f5f7fb;
+}
+
 .consult-order {
   display: flex;
   align-items: center;

@@ -11,20 +11,26 @@
       <view class="source-account">账号：{{group.accountNo}}</view>
     </view>
     <view wx:if="{{!group.orders.length}}" class="empty-mini">该账号暂无同步订单</view>
-    <view wx:for="{{group.orders}}" wx:key="no" wx:for-item="item" class="order-card" bindtap="goDetail" data-no="{{item.no}}">
-      <image class="product-thumb" src="{{item.image}}" mode="aspectFill" />
-      <view class="order-info">
-        <view class="between">
-          <view class="order-title">{{item.title}}</view>
-          <view class="price">￥{{item.price}}</view>
-        </view>
-        <view class="muted">{{item.no}} · {{item.status}}</view>
-        <view class="muted">{{item.spec}}</view>
-        <view class="order-bottom">
-          <view class="tag">售后：{{item.afterSale}}</view>
-          <view class="detail-link">查看详情 ›</view>
+    <block wx:for="{{group.shops}}" wx:key="merchant" wx:for-item="shop">
+      <view class="shop-banner">
+        <view class="shop-title">{{shop.merchant}}</view>
+        <view class="shop-count">{{shop.orders.length}} 个订单</view>
+      </view>
+      <view wx:for="{{shop.orders}}" wx:key="no" wx:for-item="item" class="order-card" bindtap="goDetail" data-no="{{item.no}}">
+        <image class="product-thumb" src="{{item.image}}" mode="aspectFill" />
+        <view class="order-info">
+          <view class="between">
+            <view class="order-title">{{item.title}}</view>
+            <view class="price">￥{{item.price}}</view>
+          </view>
+          <view class="muted">{{item.no}} · {{item.status}}</view>
+          <view class="muted">{{item.spec}}</view>
+          <view class="order-bottom">
+            <view class="tag">售后：{{item.afterSale}}</view>
+            <view class="detail-link">查看详情 ›</view>
+          </view>
         </view>
       </view>
-    </view>
+    </block>
   </block>
 </view>

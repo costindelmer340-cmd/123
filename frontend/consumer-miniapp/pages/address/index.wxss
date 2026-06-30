@@ -114,6 +114,10 @@ input {
   color: #1f7ae0;
 }
 
+.default-action-btn {
+  width: 220rpx;
+}
+
 .danger-btn {
   background: #fff1f0;
   color: #d92d20;

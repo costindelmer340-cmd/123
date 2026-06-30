@@ -11,9 +11,13 @@
   width: 112rpx;
   height: 112rpx;
   border-radius: 36rpx;
-  background: #eaf2ff;
   margin-right: 22rpx;
   flex-shrink: 0;
+}
+
+.avatar-empty {
+  background: #eef2f7;
+  border: 1rpx dashed #cbd5e1;
 }
 
 .profile-main {

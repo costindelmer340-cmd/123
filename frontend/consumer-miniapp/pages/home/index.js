@@ -1,4 +1,4 @@
-import { getTwentyMallBindings, removeTwentyMallBinding, saveTwentyMallBinding } from "../../utils/auth"
+import { canBindTwentyMallAccount, getConsumerAddresses, getTwentyMallBindings, occupyTwentyMallBinding, removeTwentyMallBinding, saveConsumerAddresses, saveTwentyMallBinding } from "../../utils/auth"
 
 function buildPlatforms() {
   return [
@@ -41,6 +41,7 @@ Page({
   },
   onShow() {
     const bindings = getTwentyMallBindings()
+    bindings.forEach((binding) => occupyTwentyMallBinding(binding.accountNo))
     this.setData({
       platforms: buildPlatforms(),
       twentyMallBindings: bindings,
@@ -69,6 +70,10 @@ Page({
     const password = this.data.twentyMallPassword.trim()
     if (!accountNo || !password) {
       wx.showToast({ title: "请输入20商城账号和密码", icon: "none" })
+      return
+    }
+    if (!canBindTwentyMallAccount(accountNo)) {
+      wx.showToast({ title: "该账号已被绑定", icon: "none" })
       return
     }
     wx.request({
@@ -112,7 +117,7 @@ Page({
       success: (res) => {
         const data = res.data && res.data.data
         if (!data || !data.address) return
-        const addresses = wx.getStorageSync("consumerAddresses") || []
+        const addresses = getConsumerAddresses()
         const sourceId = `twenty_mall_${accountNo}`
         const parts = splitAddress(data.address)
         const importedAddress = {
@@ -136,8 +141,7 @@ Page({
             isDefault: index === 0
           }))
         }
-        wx.setStorageSync("consumerAddresses", nextAddresses)
-        wx.removeStorageSync("consumerAddress")
+        saveConsumerAddresses(nextAddresses)
       }
     })
   },

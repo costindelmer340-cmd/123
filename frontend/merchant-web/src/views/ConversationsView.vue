@@ -14,7 +14,10 @@
           <div class="page-kicker">{{ item.orderNo }} · {{ cleanProductName(item.productName) }}</div>
           <div class="page-kicker">{{ item.aiIntent }} · {{ formatStatus(item.status) }} · {{ item.lastMessageAt }}</div>
         </div>
-        <el-tag>{{ formatStatus(item.status) }}</el-tag>
+        <div class="conversation-actions">
+          <el-tag>{{ formatStatus(item.status) }}</el-tag>
+          <el-button link type="primary" @click.stop="openOrderDetail(item)">详细</el-button>
+        </div>
       </div>
     </div>
     <div class="panel">
@@ -43,6 +46,22 @@
         <el-button type="primary" @click="sendReply">发送</el-button>
       </div>
     </div>
+    <el-dialog v-model="orderDetailVisible" title="订单详情" width="620px">
+      <el-descriptions v-if="detailConversation" :column="2" border>
+        <el-descriptions-item label="订单编号">{{ detailConversation.orderNo }}</el-descriptions-item>
+        <el-descriptions-item label="所属平台">{{ detailConversation.platformName || '20商城' }}</el-descriptions-item>
+        <el-descriptions-item label="商家名称">{{ detailConversation.merchantName }}</el-descriptions-item>
+        <el-descriptions-item label="商品名称">{{ cleanProductName(detailConversation.productName) }}</el-descriptions-item>
+        <el-descriptions-item label="售后状态">{{ detailConversation.afterSaleStatus }}</el-descriptions-item>
+        <el-descriptions-item label="接待状态">{{ formatStatus(detailConversation.status) }}</el-descriptions-item>
+        <el-descriptions-item label="咨询意图">{{ detailConversation.aiIntent }}</el-descriptions-item>
+        <el-descriptions-item label="最近消息时间">{{ detailConversation.lastMessageAt }}</el-descriptions-item>
+        <el-descriptions-item label="最近消息" :span="2">{{ detailConversation.lastMessage || '暂无' }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button type="primary" @click="orderDetailVisible = false">知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -80,6 +99,8 @@ const conversationData = ref<DemoConversation[]>([])
 const selectedConversation = ref<DemoConversation | null>(null)
 const replyContent = ref('')
 const chatMessages = ref<DemoMessage[]>([])
+const orderDetailVisible = ref(false)
+const detailConversation = ref<DemoConversation | null>(null)
 let pollingTimer = 0
 
 onMounted(async () => {
@@ -105,6 +126,11 @@ watch(selectedConversation, (next, previous) => {
 
 function selectConversation(conversation: DemoConversation) {
   selectedConversation.value = conversation
+}
+
+function openOrderDetail(conversation: DemoConversation) {
+  detailConversation.value = conversation
+  orderDetailVisible.value = true
 }
 
 async function loadConversations(showError = true) {
@@ -241,19 +267,27 @@ function speakerText(senderType: string) {
 }
 
 .bubble {
+  display: inline-block;
+  width: fit-content;
   max-width: 76%;
   padding: 10px 12px;
   border-radius: 8px;
   margin-bottom: 10px;
   line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .message-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 12px;
 }
 
 .message-row.right {
-  text-align: right;
+  align-items: flex-end;
 }
 
 .speaker {
@@ -272,9 +306,6 @@ function speakerText(senderType: string) {
 
 .staff {
   background: #dcfce7;
-  margin-left: auto;
-  display: inline-block;
-  text-align: left;
 }
 
 .chat-input {
@@ -290,6 +321,13 @@ function speakerText(senderType: string) {
 .clickable-line.active {
   background: #eef6ff;
   border-color: #b7d8ff;
+}
+
+.conversation-actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
 }
 
 @media (max-width: 1200px) {

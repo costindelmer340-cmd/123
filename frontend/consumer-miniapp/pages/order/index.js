@@ -1,6 +1,21 @@
 import { getTwentyMallBindings } from "../../utils/auth"
 import { enrichOrderDisplay } from "../../utils/order-display"
 
+function groupOrdersByMerchant(orders) {
+  const shopMap = {}
+  orders.forEach((order) => {
+    const merchant = order.merchant || "未知商家"
+    if (!shopMap[merchant]) {
+      shopMap[merchant] = {
+        merchant,
+        orders: []
+      }
+    }
+    shopMap[merchant].orders.push(order)
+  })
+  return Object.keys(shopMap).map((merchant) => shopMap[merchant])
+}
+
 Page({
   data: {
     orders: [],
@@ -29,19 +44,22 @@ Page({
             price: item.price,
             image: item.image,
             spec: item.spec,
+            reviewed: !!item.reviewed,
             service: item.afterSale === "未申请" ? "可申请售后" : "售后处理中"
           }))
           resolve({
             platform: "20商城",
             accountNo: binding.accountNo,
-            orders: groupOrders
+            orders: groupOrders,
+            shops: groupOrdersByMerchant(groupOrders)
           })
         },
         fail: () => {
           resolve({
             platform: "20商城",
             accountNo: binding.accountNo,
-            orders: []
+            orders: [],
+            shops: []
           })
         }
       })

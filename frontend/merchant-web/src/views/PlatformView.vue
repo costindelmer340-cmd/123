@@ -73,7 +73,7 @@
     </div>
     <el-dialog v-model="twentyMallDialogVisible" title="绑定20商城账号" width="460px">
       <el-alert
-        title="商家端演示账号：20230141 / 123456（极光外设旗舰店），20230142 / 123456（黑曜通勤箱包店）"
+        title="商家端演示账号：20230141 / 123456（极光外设旗舰店），20230142 / 123456（黑曜通勤箱包店），22222223 / 123456（晨光数码生活馆），22222224 / 123456（云途箱包旗舰店）"
         type="info"
         :closable="false"
         style="margin-bottom: 16px"

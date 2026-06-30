@@ -8,9 +8,9 @@
           <p>手机号验证码登录，后续接入真实短信验证</p>
         </div>
       </div>
-      <el-form @submit.prevent>
+        <el-form @submit.prevent>
         <el-form-item label="手机号">
-          <el-input v-model="phone" placeholder="merchant_admin_demo" />
+          <el-input v-model="phone" placeholder="请输入手机号" />
         </el-form-item>
         <el-form-item label="验证码">
           <el-input v-model="code" placeholder="123456" />
@@ -21,7 +21,7 @@
           <span>微信一键登录</span>
         </el-button>
       </el-form>
-      <div class="login-tip">演示手机号：merchant_admin_demo / 123456</div>
+      <div class="login-tip">演示手机号：merchant_admin_demo / 123456；空白账号：66666666 / 123456</div>
     </div>
   </div>
 </template>
@@ -30,28 +30,51 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { setAuth } from '../utils/auth'
+import { clearMerchantBindings, setAuth } from '../utils/auth'
 import wechatIcon from '../assets/platforms/wechat.png'
 
 const router = useRouter()
 const phone = ref('merchant_admin_demo')
 const code = ref('123456')
 const loading = ref(false)
-
-function login() {
-  loading.value = true
-  try {
-    if (phone.value.trim() !== 'merchant_admin_demo' || code.value.trim() !== '123456') {
-      ElMessage({ type: 'error', message: '手机号或验证码错误' })
-      return
-    }
-    setAuth('demo-token', {
+const demoAccounts = [
+  {
+    phone: 'merchant_admin_demo',
+    code: '123456',
+    user: {
       userId: 2,
       username: 'merchant_admin_demo',
       nickname: '店铺管理员',
       merchantId: 1,
       roles: ['MERCHANT_ADMIN']
-    })
+    }
+  },
+  {
+    phone: '66666666',
+    code: '123456',
+    user: {
+      userId: 66666666,
+      username: '66666666',
+      nickname: '',
+      merchantId: null,
+      roles: ['MERCHANT_ADMIN']
+    }
+  }
+]
+
+function login() {
+  loading.value = true
+  try {
+    const account = demoAccounts.find((item) => item.phone === phone.value.trim() && item.code === code.value.trim())
+    if (!account) {
+      ElMessage({ type: 'error', message: '手机号或验证码错误' })
+      return
+    }
+    setAuth('demo-token', account.user)
+    if (account.phone === '66666666' && localStorage.getItem('merchant_blank_account_initialized:66666666') !== '1') {
+      clearMerchantBindings()
+      localStorage.setItem('merchant_blank_account_initialized:66666666', '1')
+    }
     router.push('/platform')
   } finally {
     loading.value = false

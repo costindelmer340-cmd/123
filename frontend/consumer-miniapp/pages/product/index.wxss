@@ -112,6 +112,11 @@
   font-weight: 700;
 }
 
+.review-btn-disabled {
+  background: #f2f4f7;
+  color: #98a2b3;
+}
+
 .review-mask {
   position: fixed;
   inset: 0;
@@ -134,6 +139,110 @@
   padding: 42rpx;
   box-sizing: border-box;
   background: rgba(15, 23, 42, 0.42);
+}
+
+.reason-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 42rpx;
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.reason-dialog {
+  width: 100%;
+  padding: 34rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.reason-subtitle {
+  margin-top: 10rpx;
+  color: #667085;
+  font-size: 26rpx;
+}
+
+.reason-textarea {
+  width: 100%;
+  min-height: 180rpx;
+  margin-top: 24rpx;
+  padding: 22rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e4e7ec;
+  background: #f9fafb;
+  color: #101828;
+  font-size: 27rpx;
+  line-height: 1.6;
+  box-sizing: border-box;
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  margin-top: 20rpx;
+}
+
+.upload-btn {
+  width: 180rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  margin: 0;
+  border-radius: 14rpx;
+  background: #eef4ff;
+  color: #1f7ae0;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.upload-tip {
+  flex: 1;
+  color: #98a2b3;
+  font-size: 24rpx;
+}
+
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
+.image-item {
+  position: relative;
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #f2f4f7;
+}
+
+.image-item image {
+  width: 100%;
+  height: 100%;
+}
+
+.image-item text {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 34rpx;
+  height: 34rpx;
+  line-height: 30rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: rgba(16, 24, 40, 0.68);
+  color: #fff;
+  font-size: 30rpx;
+}
+
+.image-item.readonly text {
+  display: none;
 }
 
 .after-sale-dialog {
@@ -165,6 +274,11 @@
   line-height: 1.6;
 }
 
+.after-sale-images {
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #eef2f7;
+}
+
 .review-dialog {
   width: 100%;
   padding: 34rpx;
@@ -185,10 +299,22 @@
   font-size: 26rpx;
 }
 
+.review-section {
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #eef2f7;
+}
+
+.review-section-title {
+  color: #344054;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
 .star-row {
   display: flex;
   gap: 14rpx;
-  margin: 26rpx 0;
+  margin: 18rpx 0;
 }
 
 .star {

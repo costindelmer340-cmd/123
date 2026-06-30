@@ -28,8 +28,16 @@ export async function loadTwentyMallMerchantAfterSales(accountNo: string) {
   return unwrap(await api.get('/twenty-mall/merchant/after-sales', { params: { accountNo } }))
 }
 
+export async function reviewTwentyMallAfterSale(afterSaleId: number, result: 'APPROVE' | 'REJECT', reason = '') {
+  return unwrap(await api.post('/twenty-mall/merchant/after-sales/review', { afterSaleId, result, reason }))
+}
+
 export async function loadConversations() {
   return unwrap(await api.get('/merchant/conversations'))
+}
+
+export async function loadDemoChatConversations(merchantAccounts: string[] = []) {
+  return unwrap(await api.get('/demo-chat/conversations', { params: { merchantAccounts } }))
 }
 
 export async function loadTickets(params: Record<string, unknown> = {}) {

@@ -6,32 +6,34 @@
   </view>
 
   <block wx:else>
-  <view class="consult-order card" bindtap="goOrderDetail">
-    <image class="consult-thumb" src="{{consultingOrder.image}}" mode="aspectFill" />
-    <view class="consult-info">
-      <view class="sub-title">{{consultingOrder.title}}</view>
-      <view class="muted">订单编号：{{consultingOrder.no}}</view>
-      <view class="muted">商家：{{consultingOrder.merchant}}</view>
-      <view class="muted">售后状态：{{consultingOrder.afterSale}}</view>
-    </view>
-    <view class="consult-arrow">›</view>
-  </view>
-
-  <scroll-view class="order-switch" scroll-x>
-    <view
-      wx:for="{{orders}}"
-      wx:key="no"
-      data-no="{{item.no}}"
-      bindtap="switchOrder"
-      class="order-chip {{activeOrderNo === item.no ? 'order-chip-active' : ''}}"
-    >
-      <image class="chip-thumb" src="{{item.image}}" mode="aspectFill" />
-      <view class="chip-text">
-        <view>{{item.title}}</view>
-        <text>{{item.merchant}}</text>
+  <view class="chat-sticky">
+    <view class="consult-order card" bindtap="goOrderDetail">
+      <image class="consult-thumb" src="{{consultingOrder.image}}" mode="aspectFill" />
+      <view class="consult-info">
+        <view class="sub-title">{{consultingOrder.title}}</view>
+        <view class="muted">订单编号：{{consultingOrder.no}}</view>
+        <view class="muted">商家：{{consultingOrder.merchant}}</view>
+        <view class="muted">售后状态：{{consultingOrder.afterSale}}</view>
       </view>
+      <view class="consult-arrow">›</view>
     </view>
-  </scroll-view>
+
+    <scroll-view class="order-switch" scroll-x>
+      <view
+        wx:for="{{orders}}"
+        wx:key="no"
+        data-no="{{item.no}}"
+        bindtap="switchOrder"
+        class="order-chip {{activeOrderNo === item.no ? 'order-chip-active' : ''}}"
+      >
+        <image class="chip-thumb" src="{{item.image}}" mode="aspectFill" />
+        <view class="chip-text">
+          <view>{{item.title}}</view>
+          <text>{{item.merchant}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
 
   <view class="chat-list">
     <view wx:for="{{messages}}" wx:key="index" class="msg-row {{item.role === 'user' ? 'msg-right' : 'msg-left'}}">

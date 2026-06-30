@@ -1,9 +1,9 @@
 <view class="page">
   <view class="profile-card card">
-    <image class="avatar" src="{{profile.avatar}}" mode="aspectFill" />
+    <image wx:if="{{profile.avatar}}" class="avatar" src="{{profile.avatar}}" mode="aspectFill" />
+    <view wx:else class="avatar avatar-empty"></view>
     <view class="profile-main">
       <view class="title">{{profile.nickname}}</view>
-      <view class="muted">手机号：{{profile.phone}}</view>
       <view class="tag">{{profile.bindPlatform}}</view>
     </view>
     <button class="edit-btn" bindtap="editProfile">修改</button>

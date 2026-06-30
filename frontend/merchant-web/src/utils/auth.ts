@@ -17,7 +17,9 @@ export type MerchantPlatformBinding = {
 
 const TWENTY_MALL_MERCHANT_NAMES: Record<string, string> = {
   '20230141': '极光外设旗舰店',
-  '20230142': '黑曜通勤箱包店'
+  '20230142': '黑曜通勤箱包店',
+  '22222223': '晨光数码生活馆',
+  '22222224': '云途箱包旗舰店'
 }
 
 export function getToken() {

@@ -2,7 +2,7 @@
   <div class="panel">
     <div class="toolbar">
       <el-segmented v-model="status" :options="filterOptions" />
-      <el-button v-if="status === '全部' || status === 'PENDING_REVIEW'" type="primary" @click="batchApprove">批量审核</el-button>
+      <el-button v-if="status === '全部' && filteredAfterSales.length" type="primary" @click="writeBackAllAfterSales">统一回写处理结果</el-button>
     </div>
     <div v-loading="loading">
       <el-empty v-if="!groupedAfterSales.length" description="暂无售后单" />
@@ -33,47 +33,52 @@
               <template #default="{ row }">
                 <span class="row-actions">
                   <span v-if="hasUnreadMark(row)" class="unread-dot" />
-                  <el-button link type="primary" @click="openDetail(row)">详细</el-button>
                   <el-button v-if="canReview(row)" link type="primary" @click="openReview(row)">审核</el-button>
+                  <el-button v-else link type="primary" @click="openDetail(row)">详细</el-button>
                 </span>
               </template>
             </el-table-column>
           </el-table>
         </div>
       </section>
-      <div v-if="status === '全部' && filteredAfterSales.length" class="writeback-footer">
-        <el-button type="primary" @click="writeBackAllAfterSales">统一回写处理结果</el-button>
-      </div>
     </div>
-    <el-dialog v-model="detailVisible" title="售后详情" width="620px">
-      <el-descriptions v-if="selectedAfterSale" :column="2" border>
+    <el-dialog v-model="detailVisible" title="售后详情" width="860px">
+      <el-descriptions v-if="selectedAfterSale" class="after-sale-descriptions" :column="2" border>
         <el-descriptions-item label="订单编号">{{ selectedAfterSale.orderNo }}</el-descriptions-item>
         <el-descriptions-item label="商品名称">{{ selectedAfterSale.productName }}</el-descriptions-item>
         <el-descriptions-item label="所属平台">{{ selectedAfterSale.platformName }}</el-descriptions-item>
         <el-descriptions-item label="所属店铺">{{ selectedAfterSale.shopName }}</el-descriptions-item>
         <el-descriptions-item label="类型">{{ labelText.afterSaleType[selectedAfterSale.afterSaleType] || selectedAfterSale.afterSaleType }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ labelText.status[selectedAfterSale.status] || selectedAfterSale.status }}</el-descriptions-item>
-        <el-descriptions-item label="申请原因">{{ labelText.reason[selectedAfterSale.reasonType] || selectedAfterSale.reasonType }}</el-descriptions-item>
+        <el-descriptions-item label="申请原因">{{ selectedAfterSale.description || labelText.reason[selectedAfterSale.reasonType] || selectedAfterSale.reasonType }}</el-descriptions-item>
         <el-descriptions-item label="申请金额">{{ selectedAfterSale.requestedAmount }}</el-descriptions-item>
         <el-descriptions-item label="优先级">{{ labelText.priority[selectedAfterSale.priority] || selectedAfterSale.priority }}</el-descriptions-item>
         <el-descriptions-item label="回写状态">{{ labelText.writeBack[selectedAfterSale.writeBackStatus] || selectedAfterSale.writeBackStatus }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ selectedAfterSale.createdAt }}</el-descriptions-item>
         <el-descriptions-item label="审核意见" :span="2">{{ selectedAfterSale.reviewOpinion || '暂无' }}</el-descriptions-item>
+        <el-descriptions-item label="凭证照片" :span="2">
+          <div v-if="selectedAfterSale.evidenceImages?.length" class="evidence-list">
+            <el-image
+              v-for="(image, index) in selectedAfterSale.evidenceImages"
+              :key="index"
+              :src="image"
+              :preview-src-list="selectedAfterSale.evidenceImages"
+              fit="cover"
+              class="evidence-image"
+            />
+          </div>
+          <span v-else>暂无</span>
+        </el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
-        <el-button v-if="selectedAfterSale && canReview(selectedAfterSale)" type="primary" @click="openReview(selectedAfterSale)">审核</el-button>
+        <el-button v-if="selectedAfterSale && canReview(selectedAfterSale)" type="danger" @click="openRejectDialog">拒绝</el-button>
+        <el-button v-if="selectedAfterSale && canReview(selectedAfterSale)" type="primary" @click="approveSelectedAfterSale">同意</el-button>
       </template>
     </el-dialog>
-    <el-dialog v-model="reviewVisible" title="售后审核" width="520px">
+    <el-dialog v-model="reviewVisible" title="拒绝售后申请" width="520px">
       <el-form label-width="88px">
-        <el-form-item label="审核结果">
-          <el-radio-group v-model="reviewForm.result">
-            <el-radio-button label="APPROVE">同意</el-radio-button>
-            <el-radio-button label="REJECT">拒绝</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="reviewForm.result === 'REJECT'" label="拒绝原因">
+        <el-form-item label="拒绝原因">
           <el-input
             v-model="reviewForm.reason"
             type="textarea"
@@ -93,7 +98,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { afterSales } from '../data/mock'
-import { loadTwentyMallMerchantAfterSales } from '../api'
+import { loadTwentyMallMerchantAfterSales, reviewTwentyMallAfterSale } from '../api'
 import { ElMessage } from 'element-plus'
 import twentyMallIcon from '../assets/platforms/twenty-mall.png'
 import { getMerchantBindings } from '../utils/auth'
@@ -105,6 +110,8 @@ type AfterSaleRow = typeof afterSales[number] & {
   platformName: string
   platformIcon: string
   shopName: string
+  description?: string
+  evidenceImages?: string[]
 }
 
 const status = ref('全部')
@@ -116,7 +123,7 @@ const detailVisible = ref(false)
 const selectedAfterSale = ref<AfterSaleRow | null>(null)
 const reviewingId = ref<number | null>(null)
 const readAfterSaleIds = ref<Set<number>>(readStoredAfterSaleIds())
-const reviewForm = ref({ result: 'APPROVE', reason: '' })
+const reviewForm = ref({ reason: '' })
 const filterOptions = [
   { label: '全部', value: '全部' },
   { label: '待审核', value: 'PENDING_REVIEW' },
@@ -147,8 +154,8 @@ async function loadBoundAfterSales() {
     const result = await Promise.all(bindings.map((binding) => loadTwentyMallMerchantAfterSales(binding.accountNo as string)))
     return result.flat() as typeof afterSales
   } catch {
-    ElMessage({ type: 'warning', message: '暂时无法读取后端售后申请，当前显示本地演示数据' })
-    return afterSales
+    ElMessage({ type: 'error', message: '暂时无法读取后端售后申请，请确认后端服务和数据库已启动' })
+    return []
   }
 }
 
@@ -200,27 +207,6 @@ const groupedAfterSales = computed(() => {
   }))
 })
 
-function batchApprove() {
-  let changed = 0
-  afterSalesData.value = afterSalesData.value.map((item) => {
-    if (item.status !== 'PENDING_REVIEW') {
-      return item
-    }
-    changed += 1
-    return {
-      ...item,
-      status: 'PROCESSING',
-      priority: item.priority || 'NORMAL',
-      reviewOpinion: '批量审核通过，进入售后处理',
-      writeBackStatus: 'PENDING'
-    }
-  })
-  ElMessage({
-    type: changed ? 'success' : 'info',
-    message: changed ? `已审核 ${changed} 条待处理售后` : '当前没有待审核售后'
-  })
-}
-
 function openDetail(row: AfterSaleRow) {
   markAfterSaleRead(row)
   selectedAfterSale.value = row
@@ -229,51 +215,53 @@ function openDetail(row: AfterSaleRow) {
 
 function openReview(row: AfterSaleRow) {
   markAfterSaleRead(row)
-  reviewingId.value = row.id
-  reviewForm.value = { result: 'APPROVE', reason: '' }
-  reviewVisible.value = true
+  selectedAfterSale.value = row
+  detailVisible.value = true
 }
 
 function submitReview() {
   if (reviewingId.value === null) {
     return
   }
-  if (reviewForm.value.result === 'REJECT' && !reviewForm.value.reason.trim()) {
-    ElMessage({ type: 'warning', message: '拒绝售后时需要填写原因' })
+  if (!reviewForm.value.reason.trim()) {
+    ElMessage({ type: 'warning', message: '请输入拒绝原因' })
     return
   }
-  approveAfterSale(reviewingId.value, reviewForm.value.result, reviewForm.value.reason.trim())
+  approveAfterSale(reviewingId.value, 'REJECT', reviewForm.value.reason.trim())
   reviewVisible.value = false
 }
 
-function approveAfterSale(afterSaleId: number, result = 'APPROVE', reason = '') {
-  let changed = false
-  afterSalesData.value = afterSalesData.value.map((item) => {
-    if (item.id !== afterSaleId) {
-      return item
-    }
-    changed = item.status === 'PENDING_REVIEW'
-    if (result === 'REJECT') {
-      return {
-        ...item,
-        status: 'REJECTED',
-        reviewOpinion: `审核拒绝：${reason}`,
-        writeBackStatus: 'PENDING'
-      }
-    }
-    return {
-      ...item,
-      status: 'PROCESSING',
-      priority: item.reasonType === 'PRODUCT_QUALITY' ? 'HIGH' : item.priority,
-      reviewOpinion: changed ? '审核通过，等待平台退款或退货流程' : '已复核，当前售后继续处理',
-      writeBackStatus: 'PENDING'
-    }
-  })
-  ElMessage({
-    type: 'success',
-    message: result === 'REJECT' ? '售后申请已拒绝' : (changed ? '售后审核已通过' : '售后复核结果已更新')
-  })
-  syncSelectedAfterSale(afterSaleId)
+function approveSelectedAfterSale() {
+  if (!selectedAfterSale.value) {
+    return
+  }
+  approveAfterSale(selectedAfterSale.value.id, 'APPROVE')
+}
+
+function openRejectDialog() {
+  if (!selectedAfterSale.value) {
+    return
+  }
+  reviewingId.value = selectedAfterSale.value.id
+  reviewForm.value = { reason: '' }
+  reviewVisible.value = true
+}
+
+async function approveAfterSale(afterSaleId: number, result = 'APPROVE', reason = '') {
+  try {
+    const updated = await reviewTwentyMallAfterSale(afterSaleId, result as 'APPROVE' | 'REJECT', reason) as AfterSaleRow
+    afterSalesData.value = afterSalesData.value.map((item) => (
+      item.id === afterSaleId ? normalizeAfterSaleRow({ ...item, ...updated }) : item
+    ))
+    ElMessage({
+      type: 'success',
+      message: result === 'REJECT' ? '售后申请已拒绝并写入数据库' : '售后审核已通过并写入数据库'
+    })
+    syncSelectedAfterSale(afterSaleId)
+    detailVisible.value = false
+  } catch {
+    ElMessage({ type: 'error', message: '审核失败，请确认后端服务和数据库已启动' })
+  }
 }
 
 function writeBackAfterSale(afterSaleId: number) {
@@ -465,5 +453,30 @@ function fallbackOrderNo(afterSaleNo: string) {
   border-radius: 50%;
   background: #ef4444;
   box-shadow: 0 0 0 2px #fee2e2;
+}
+
+.evidence-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.evidence-image {
+  width: 88px;
+  height: 88px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e4e8f0;
+}
+
+.after-sale-descriptions :deep(.el-descriptions__label) {
+  width: 108px;
+  min-width: 108px;
+  white-space: nowrap;
+}
+
+.after-sale-descriptions :deep(.el-descriptions__content) {
+  min-width: 230px;
+  word-break: break-word;
 }
 </style>

@@ -38,7 +38,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { BarChart3, BookOpen, Bot, ClipboardList, Headphones, PackageSearch, RefreshCcw, Store } from 'lucide-vue-next'
+import { BarChart3, BookOpen, Bot, Headphones, RefreshCcw, Store } from 'lucide-vue-next'
 import { clearAuth, getMerchantBindings, getStoredUser, getToken } from '../utils/auth'
 
 const route = useRoute()
@@ -46,10 +46,8 @@ const router = useRouter()
 const navItems = [
   { path: '/dashboard', label: '工作台', icon: BarChart3 },
   { path: '/platform', label: '店铺绑定', icon: Store },
-  { path: '/orders', label: '外部订单', icon: PackageSearch },
   { path: '/after-sales', label: '售后处理', icon: RefreshCcw },
   { path: '/conversations', label: '实时客服', icon: Headphones },
-  { path: '/tickets', label: '工单处理', icon: ClipboardList },
   { path: '/reviews', label: '评价分析', icon: Bot },
   { path: '/knowledge', label: '知识库', icon: BookOpen }
 ]

@@ -39,7 +39,7 @@
         <view wx:if="{{item.isDefault}}" class="default-tag">默认</view>
       </view>
       <view class="address-actions">
-        <button wx:if="{{!item.isDefault}}" class="text-btn" data-id="{{item.id}}" bindtap="setDefault">设为默认</button>
+        <button wx:if="{{!item.isDefault}}" class="text-btn default-action-btn" data-id="{{item.id}}" bindtap="setDefault">设置为默认地址</button>
         <button class="text-btn" data-id="{{item.id}}" bindtap="editAddress">编辑</button>
         <button class="danger-btn" data-id="{{item.id}}" bindtap="deleteAddress">删除</button>
       </view>

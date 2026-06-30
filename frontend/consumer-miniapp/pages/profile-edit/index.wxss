@@ -13,6 +13,10 @@
   background: #eef2f7;
 }
 
+.avatar-empty {
+  border: 1rpx dashed #cbd5e1;
+}
+
 .avatar-btn {
   width: 190rpx;
   height: 68rpx;

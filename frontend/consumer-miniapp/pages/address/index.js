@@ -1,3 +1,5 @@
+import { getConsumerAddresses, saveConsumerAddresses } from "../../utils/auth"
+
 const emptyForm = {
   id: "",
   name: "",
@@ -23,15 +25,7 @@ Page({
     this.loadAddresses()
   },
   loadAddresses() {
-    const addresses = wx.getStorageSync("consumerAddresses") || []
-    const oldAddress = wx.getStorageSync("consumerAddress")
-    if (!addresses.length && oldAddress && oldAddress.fullAddress) {
-      const migrated = [{ ...oldAddress, id: "addr_legacy", isDefault: true }]
-      wx.setStorageSync("consumerAddresses", migrated)
-      wx.removeStorageSync("consumerAddress")
-      this.setData({ addresses: migrated })
-      return
-    }
+    const addresses = getConsumerAddresses()
     this.setData({ addresses })
   },
   onInput(e) {
@@ -60,7 +54,7 @@ Page({
         if (nextAddresses.length && !nextAddresses.some((item) => item.isDefault)) {
           nextAddresses[0].isDefault = true
         }
-        wx.setStorageSync("consumerAddresses", nextAddresses)
+        saveConsumerAddresses(nextAddresses)
         this.setData({ addresses: nextAddresses })
         if (this.data.editingId === id) {
           this.resetForm()
@@ -75,7 +69,7 @@ Page({
       ...item,
       isDefault: item.id === id
     }))
-    wx.setStorageSync("consumerAddresses", nextAddresses)
+    saveConsumerAddresses(nextAddresses)
     this.setData({ addresses: nextAddresses })
     wx.showToast({ title: "已设为默认", icon: "success" })
   },
@@ -111,8 +105,7 @@ Page({
         isDefault: item.id === id
       }))
     }
-    wx.setStorageSync("consumerAddresses", nextAddresses)
-    wx.removeStorageSync("consumerAddress")
+    saveConsumerAddresses(nextAddresses)
     this.setData({ addresses: nextAddresses })
     this.resetForm()
     wx.showToast({ title: exists ? "地址已更新" : "地址已新增", icon: "success" })

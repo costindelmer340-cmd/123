@@ -1,9 +1,9 @@
-import { clearDemoToken, clearPrimaryAccountData, getTwentyMallBindings } from "../../utils/auth"
+import { clearDemoToken, clearPrimaryAccountData, getConsumerAddresses, getConsumerProfile, getPrimaryPhone, getTwentyMallBindings } from "../../utils/auth"
 
 const defaultProfile = {
-  nickname: "consumer_demo",
-  phone: "13338907581",
-  avatar: "/assets/avatars/user.png",
+  nickname: "",
+  phone: "",
+  avatar: "",
   address: "",
   bindPlatform: "未绑定电商平台",
   lastConsult: "暂无"
@@ -20,14 +20,15 @@ Page({
     this.clearCancelTimer()
   },
   onShow() {
-    const profile = wx.getStorageSync("consumerProfile")
-    const addresses = wx.getStorageSync("consumerAddresses") || []
-    const oldAddress = wx.getStorageSync("consumerAddress")
+    const phone = getPrimaryPhone()
+    const profile = getConsumerProfile()
+    const addresses = getConsumerAddresses()
     const bindings = getTwentyMallBindings()
     const nextProfile = profile ? { ...defaultProfile, ...profile } : { ...defaultProfile }
-    nextProfile.phone = "13338907581"
+    nextProfile.phone = phone === "guest" ? "" : phone
     nextProfile.bindPlatform = bindings.length ? `已绑定 ${bindings.length} 个电商账号` : "未绑定电商平台"
-    const defaultAddress = addresses.find((item) => item.isDefault) || addresses[0] || oldAddress
+    nextProfile.lastConsult = wx.getStorageSync(`consumerLastConsultAt:${phone}`) || wx.getStorageSync("consumerLastConsultAt") || "暂无"
+    const defaultAddress = addresses.find((item) => item.isDefault) || addresses[0]
     if (defaultAddress && defaultAddress.fullAddress) {
       nextProfile.address = defaultAddress.fullAddress
     }

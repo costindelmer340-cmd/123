@@ -2,7 +2,8 @@
   <view class="card">
     <view class="sub-title">基本资料</view>
     <view class="avatar-row">
-      <image class="avatar" src="{{form.avatar}}" mode="aspectFill" />
+      <image wx:if="{{form.avatar}}" class="avatar" src="{{form.avatar}}" mode="aspectFill" />
+      <view wx:else class="avatar avatar-empty"></view>
       <button class="avatar-btn" bindtap="chooseAvatar">更换头像</button>
     </view>
     <view class="form-item">

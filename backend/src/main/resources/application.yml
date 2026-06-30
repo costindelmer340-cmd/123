@@ -41,4 +41,4 @@ app:
     access-token-ttl-seconds: 7200
     refresh-token-ttl-seconds: 604800
   ai:
-    base-url: http://localhost:9000
+    base-url: http://localhost:8085

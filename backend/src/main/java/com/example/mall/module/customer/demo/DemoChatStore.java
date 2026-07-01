@@ -1,19 +1,18 @@
 package com.example.mall.module.customer.demo;
 
-import com.example.mall.module.ai.dto.AiReplyRequest;
-import com.example.mall.module.ai.dto.ReplyResponse;
-import com.example.mall.module.ai.service.AiService;
 import com.example.mall.module.customer.demo.DemoChatController.DemoChatMessageRequest;
 import com.example.mall.module.customer.demo.DemoChatController.DemoChatMessageResponse;
 import com.example.mall.module.customer.demo.DemoChatController.DemoConversationResponse;
+import com.example.mall.module.ai.dto.AiReplyRequest;
+import com.example.mall.module.ai.dto.ReplyResponse;
+import com.example.mall.module.ai.service.AiService;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,217 +20,453 @@ public class DemoChatStore {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final Map<String, DemoConversation> conversations = new LinkedHashMap<>();
-    private final Map<String, List<DemoMessage>> messageMap = new LinkedHashMap<>();
-    
+    private final JdbcTemplate jdbcTemplate;
     private final AiService aiService;
 
-    public DemoChatStore(AiService aiService) {
+    public DemoChatStore(JdbcTemplate jdbcTemplate, AiService aiService) {
+        this.jdbcTemplate = jdbcTemplate;
         this.aiService = aiService;
-        seedConversation(
-            1L,
-            "CV202606250001",
-            "DY202606250001",
-            "Aurora X1 智能手机",
-            "DY_SHOP_DEMO",
-            "星链数码旗舰店",
-            "处理中",
-            "AI_SERVING",
-            "退货退款",
-            List.of(
-                new DemoMessage("seed-1", "CONSUMER", "我", "手机屏幕有划痕，可以退货吗？", LocalDateTime.of(2026, 6, 25, 9, 31)),
-                new DemoMessage("seed-2", "AI", "AI客服", "可以先上传商品照片和包装照片，我会根据售后规则帮你判断。", LocalDateTime.of(2026, 6, 25, 9, 32)),
-                new DemoMessage("seed-3", "CONSUMER", "我", "退款进度在哪里看？", LocalDateTime.of(2026, 6, 25, 9, 34)),
-                new DemoMessage("seed-4", "AI", "AI客服", "你可以在订单详情中查看售后进度，也可以告诉我订单号。", LocalDateTime.of(2026, 6, 25, 9, 35))
-            )
-        );
-        seedConversation(
-            2L,
-            "CV202606250002",
-            "DY202606250002",
-            "Breeze Pods 无线耳机",
-            "DY_SHOP_DEMO",
-            "Breeze 声学专营店",
-            "未申请",
-            "AI_SERVING",
-            "物流查询",
-            List.of(
-                new DemoMessage("seed-5", "CONSUMER", "我", "快递三天没更新了", LocalDateTime.of(2026, 6, 25, 12, 5)),
-                new DemoMessage("seed-6", "AI", "AI客服", "当前咨询的是 Breeze 声学专营店订单，耳机类售后可查询退换货和物流进度。", LocalDateTime.of(2026, 6, 25, 12, 6))
-            )
-        );
-        seedConversation(
-            3L,
-            "CV202606270001",
-            "TM202606270001",
-            "20商城 青轴机械键盘",
-            "20230141",
-            "极光外设旗舰店",
-            "处理中",
-            "AI_SERVING",
-            "退货退款",
-            List.of(
-                new DemoMessage("tm-seed-1", "CONSUMER", "我", "20商城订单的键盘空格键回弹异常，可以退货吗？", LocalDateTime.of(2026, 6, 27, 10, 30)),
-                new DemoMessage("tm-seed-2", "AI", "AI客服", "可以。当前订单来自20商城本地数据库，按键故障属于质量问题，请上传商品照片或视频，商家审核通过后进入退货退款流程。", LocalDateTime.of(2026, 6, 27, 10, 31)),
-                new DemoMessage("tm-seed-3", "CONSUMER", "我", "这个售后现在处理到哪一步了？", LocalDateTime.of(2026, 6, 27, 10, 34)),
-                new DemoMessage("tm-seed-4", "AI", "AI客服", "20商城订单 TM202606270001 当前售后状态为：处理中。", LocalDateTime.of(2026, 6, 27, 10, 35))
-            )
-        );
-        seedConversation(
-            4L,
-            "CV202606270002",
-            "TM202606270002",
-            "20商城 城市通勤背包",
-            "20230142",
-            "黑曜通勤箱包店",
-            "未申请",
-            "AI_SERVING",
-            "售后咨询",
-            List.of(
-                new DemoMessage("tm-bag-seed-1", "CONSUMER", "我", "这个背包防水吗？如果收到有破损可以售后吗？", LocalDateTime.of(2026, 6, 27, 11, 10)),
-                new DemoMessage("tm-bag-seed-2", "AI", "AI客服", "这款背包支持日常防泼水；如收到后存在破损、拉链异常或与描述不符，可在订单详情中申请售后并上传照片凭证。", LocalDateTime.of(2026, 6, 27, 11, 11))
-            )
-        );
+        ensureTwentyMallChatTables();
     }
 
-    public synchronized List<DemoConversationResponse> listConversations(List<String> merchantAccounts) {
-        return conversations.values().stream()
-            .filter(conversation -> merchantAccounts == null || merchantAccounts.isEmpty() || merchantAccounts.contains(conversation.merchantAccountNo()))
-            .sorted(Comparator.comparing(DemoConversation::lastMessageAt).reversed())
-            .map(this::toConversationResponse)
-            .toList();
+    public List<DemoConversationResponse> listConversations(List<String> merchantAccounts) {
+        List<Object> args = new ArrayList<>();
+        String accountFilter = "";
+        if (merchantAccounts != null && !merchantAccounts.isEmpty()) {
+            accountFilter = " AND ma.account_no IN (" + "?,".repeat(merchantAccounts.size()).replaceAll(",$", "") + ")";
+            args.addAll(merchantAccounts);
+        }
+        String sql = """
+            SELECT c.id, c.conversation_no, o.order_no, i.product_name,
+                   ca.account_no AS consumer_account_no,
+                   cpa.account_no AS consumer_primary_account_no,
+                   ma.account_no AS merchant_account_no,
+                   mpa.account_no AS merchant_primary_account_no,
+                   ma.display_name AS merchant_name,
+                   COALESCE(a.status, o.after_sale_status, 'NONE') AS after_sale_status,
+                   c.status, c.ai_intent, c.last_message, c.last_message_at
+            FROM twenty_mall_conversation c
+            JOIN twenty_mall_order o ON o.id = c.order_id
+            JOIN twenty_mall_order_item i ON i.order_id = o.id AND i.deleted = 0
+            JOIN twenty_mall_account ca ON ca.id = o.consumer_account_id
+            JOIN twenty_mall_account ma ON ma.id = o.merchant_account_id
+            LEFT JOIN platform_account_binding cb ON cb.secondary_account_no = ca.account_no
+                AND cb.secondary_account_role = 'CONSUMER'
+                AND cb.bind_status = 'BOUND'
+                AND cb.deleted = 0
+            LEFT JOIN primary_account cpa ON cpa.id = cb.primary_account_id
+                AND cpa.account_type = 'CONSUMER'
+                AND cpa.deleted = 0
+            LEFT JOIN platform_account_binding mb ON mb.secondary_account_no = ma.account_no
+                AND mb.secondary_account_role = 'MERCHANT'
+                AND mb.bind_status = 'BOUND'
+                AND mb.deleted = 0
+            LEFT JOIN primary_account mpa ON mpa.id = mb.primary_account_id
+                AND mpa.account_type = 'MERCHANT'
+                AND mpa.deleted = 0
+            LEFT JOIN (
+                SELECT aa.*
+                FROM twenty_mall_after_sale aa
+                JOIN (
+                    SELECT order_id, MAX(id) AS max_id
+                    FROM twenty_mall_after_sale
+                    WHERE deleted = 0
+                    GROUP BY order_id
+                ) latest ON latest.max_id = aa.id
+            ) a ON a.order_id = o.id
+            WHERE c.deleted = 0 AND o.deleted = 0
+            """ + accountFilter + """
+            ORDER BY COALESCE(c.last_message_at, c.updated_at, c.created_at) DESC, c.id DESC
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> toConversationResponse(new DemoConversation(
+            rs.getLong("id"),
+            rs.getString("conversation_no"),
+            rs.getString("order_no"),
+            rs.getString("product_name"),
+            rs.getString("consumer_account_no"),
+            rs.getString("consumer_primary_account_no"),
+            rs.getString("merchant_account_no"),
+            rs.getString("merchant_primary_account_no"),
+            rs.getString("merchant_name"),
+            afterSaleStatusText(rs.getString("after_sale_status")),
+            rs.getString("status"),
+            rs.getString("ai_intent"),
+            rs.getString("last_message"),
+            toLocalDateTime(rs.getTimestamp("last_message_at"))
+        )), args.toArray());
     }
 
-    public synchronized DemoConversationResponse getConversation(String orderNo) {
+    public DemoConversationResponse getConversation(String orderNo) {
         return toConversationResponse(requireConversation(orderNo));
     }
 
-    public synchronized List<DemoChatMessageResponse> listMessages(String orderNo) {
-        requireConversation(orderNo);
-        return messageMap.getOrDefault(orderNo, List.of()).stream()
-            .map(message -> toMessageResponse(orderNo, message))
-            .toList();
+    public List<DemoChatMessageResponse> listMessages(String orderNo) {
+        DemoConversation conversation = requireConversation(orderNo);
+        String sql = """
+            SELECT id, sender_type, content, created_at
+            FROM twenty_mall_chat_message
+            WHERE conversation_id = ? AND deleted = 0
+            ORDER BY created_at ASC, id ASC
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> toMessageResponse(
+            orderNo,
+            new DemoMessage(
+                String.valueOf(rs.getLong("id")),
+                rs.getString("sender_type"),
+                speaker(rs.getString("sender_type")),
+                rs.getString("content"),
+                toLocalDateTime(rs.getTimestamp("created_at"))
+            )
+        ), conversation.id());
     }
 
-    public synchronized DemoChatMessageResponse addMessage(String orderNo, DemoChatMessageRequest request) {
+    public DemoChatMessageResponse addMessage(String orderNo, DemoChatMessageRequest request) {
         DemoConversation conversation = requireConversation(orderNo);
         String senderType = normalizeSender(request.senderType());
-        DemoMessage message = new DemoMessage(
-            "msg-" + System.currentTimeMillis(),
-            senderType,
-            speaker(senderType),
-            request.content(),
-            LocalDateTime.now()
-        );
-        addRawMessage(conversation, message);
-        if ("CONSUMER".equals(senderType) && "AI_SERVING".equals(conversation.status())) {
-            addRawMessage(conversation, buildAiReply(conversation, request.content()));
-        }
-        return toMessageResponse(orderNo, message);
-    }
-
-    public synchronized DemoConversationResponse transferToStaff(String orderNo) {
-        DemoConversation current = requireConversation(orderNo);
-        DemoConversation updated = new DemoConversation(
-            current.id(),
-            current.conversationNo(),
-            current.orderNo(),
-            current.productName(),
-            current.merchantAccountNo(),
-            current.merchantName(),
-            current.afterSaleStatus(),
-            "AGENT_SERVING",
-            current.aiIntent(),
-            current.lastMessage(),
-            current.lastMessageAt()
-        );
-        conversations.put(orderNo, updated);
-        addRawMessage(updated, new DemoMessage(
-            "transfer-" + System.currentTimeMillis(),
-            "STAFF",
-            "人工客服",
-            "您好，人工客服已接入，请继续描述需要处理的问题。",
-            LocalDateTime.now()
-        ));
-        return toConversationResponse(conversations.get(orderNo));
-    }
-
-    private void seedConversation(
-        Long id,
-        String conversationNo,
-        String orderNo,
-        String productName,
-        String merchantAccountNo,
-        String merchantName,
-        String afterSaleStatus,
-        String status,
-        String aiIntent,
-        List<DemoMessage> messages
-    ) {
-        DemoMessage last = messages.get(messages.size() - 1);
-        conversations.put(orderNo, new DemoConversation(id, conversationNo, orderNo, productName, merchantAccountNo, merchantName, afterSaleStatus, status, aiIntent, last.content(), last.createdAt()));
-        messageMap.put(orderNo, new ArrayList<>(messages));
-    }
-
-    private void addRawMessage(DemoConversation conversation, DemoMessage message) {
-        messageMap.computeIfAbsent(conversation.orderNo(), key -> new ArrayList<>()).add(message);
-        conversations.put(conversation.orderNo(), new DemoConversation(
-            conversation.id(),
-            conversation.conversationNo(),
-            conversation.orderNo(),
-            conversation.productName(),
-            conversation.merchantAccountNo(),
-            conversation.merchantName(),
-            conversation.afterSaleStatus(),
-            conversation.status(),
-            conversation.aiIntent(),
-            message.content(),
-            message.createdAt()
-        ));
-    }
-
-    private DemoMessage buildAiReply(DemoConversation conversation, String content) {
-        String reply = "我已收到你的问题，会结合订单和售后规则为你查询。";
-        
-        try {
-            AiReplyRequest request = new AiReplyRequest(
-                content,
-                null,
-                null,
-                null,
-                null,
-                conversation.afterSaleStatus(),
-                null
-            );
-            ReplyResponse response = aiService.generateReply(request);
-            
-            if (response != null && response.reply() != null && !response.reply().isEmpty()) {
-                reply = response.reply();
+        DemoMessage message = insertMessage(conversation, senderType, request.content(), false);
+        if ("CONSUMER".equals(senderType)) {
+            DemoConversation latestConversation = loadConversationByOrderNo(conversation.orderNo());
+            if ("AI_SERVING".equals(latestConversation.status()) || shouldResumeAiService(latestConversation)) {
+                if ("AGENT_SERVING".equals(latestConversation.status())) {
+                    resumeAiService(latestConversation);
+                    latestConversation = loadConversationByOrderNo(conversation.orderNo());
+                }
+                insertMessage(latestConversation, "AI", buildAiReply(latestConversation, request.content()), true);
             }
-        } catch (Exception e) {
-            reply = getFallbackReply(conversation, content);
         }
-        
-        return new DemoMessage("ai-" + System.currentTimeMillis(), "AI", "AI客服", reply, LocalDateTime.now());
+        return toMessageResponse(conversation.orderNo(), message);
     }
 
-    private String getFallbackReply(DemoConversation conversation, String content) {
-        if (content.contains("退货政策") || content.contains("七天无理由")) {
-            return "当前退货政策为：签收 7 天内，商品不影响二次销售且包装配件完整时可申请退货；如商品存在质量问题，请上传商品照片和包装照片，商家审核通过后进入退货退款流程。";
-        } else if (content.contains("退款") || content.contains("进度")) {
-            return "你可以在订单详情中查看售后进度。当前订单 " + conversation.orderNo() + " 的售后状态为：" + conversation.afterSaleStatus() + "。";
-        } else if (content.contains("订单号")) {
-            return "我已识别到当前咨询订单：" + conversation.orderNo() + "，商品为：" + conversation.productName() + "。";
-        }
-        return "我已收到你的问题，会结合订单和售后规则为你查询。";
+    public DemoConversationResponse transferToStaff(String orderNo) {
+        DemoConversation conversation = requireConversation(orderNo);
+        jdbcTemplate.update(
+            """
+            UPDATE twenty_mall_conversation
+            SET status = 'AGENT_SERVING', transferred_at = COALESCE(transferred_at, NOW()), updated_at = NOW()
+            WHERE id = ? AND deleted = 0
+            """,
+            conversation.id()
+        );
+        insertMessage(loadConversationByOrderNo(conversation.orderNo()), "STAFF", "您好，人工客服已接入，请继续描述需要处理的问题。", false);
+        return toConversationResponse(loadConversationByOrderNo(conversation.orderNo()));
+    }
+
+    public DemoConversationResponse endAgentService(String orderNo) {
+        DemoConversation conversation = requireConversation(orderNo);
+        return endAgentService(conversation);
+    }
+
+    public DemoConversationResponse endAgentServiceById(Long conversationId) {
+        DemoConversation conversation = requireConversationById(conversationId);
+        return endAgentService(conversation);
+    }
+
+    private DemoConversationResponse endAgentService(DemoConversation conversation) {
+        resumeAiService(conversation);
+        DemoConversation latestConversation = loadConversationByOrderNo(conversation.orderNo());
+        insertMessage(latestConversation, "AI", "人工服务已结束，后续问题将由AI客服继续为您处理。", true);
+        return toConversationResponse(loadConversationByOrderNo(conversation.orderNo()));
     }
 
     private DemoConversation requireConversation(String orderNo) {
-        DemoConversation conversation = conversations.get(orderNo);
-        if (conversation == null) {
-            throw new IllegalArgumentException("Demo conversation not found: " + orderNo);
+        List<DemoConversation> rows = queryConversationByOrderNo(orderNo);
+        if (!rows.isEmpty()) {
+            return rows.get(0);
         }
-        return conversation;
+        createTwentyMallConversation(orderNo);
+        return loadConversationByOrderNo(orderNo);
+    }
+
+    private DemoConversation loadConversationByOrderNo(String orderNo) {
+        List<DemoConversation> rows = queryConversationByOrderNo(orderNo);
+        if (rows.isEmpty()) {
+            throw new IllegalArgumentException("Conversation not found: " + orderNo);
+        }
+        return rows.get(0);
+    }
+
+    private DemoConversation requireConversationById(Long conversationId) {
+        List<DemoConversation> rows = queryConversationById(conversationId);
+        if (rows.isEmpty()) {
+            throw new IllegalArgumentException("Conversation not found: " + conversationId);
+        }
+        return rows.get(0);
+    }
+
+    private List<DemoConversation> queryConversationByOrderNo(String orderNo) {
+        String sql = """
+            SELECT c.id, c.conversation_no, o.order_no, i.product_name,
+                   ca.account_no AS consumer_account_no,
+                   cpa.account_no AS consumer_primary_account_no,
+                   ma.account_no AS merchant_account_no,
+                   mpa.account_no AS merchant_primary_account_no,
+                   ma.display_name AS merchant_name,
+                   COALESCE(a.status, o.after_sale_status, 'NONE') AS after_sale_status,
+                   c.status, c.ai_intent, c.last_message, c.last_message_at
+            FROM twenty_mall_conversation c
+            JOIN twenty_mall_order o ON o.id = c.order_id
+            JOIN twenty_mall_order_item i ON i.order_id = o.id AND i.deleted = 0
+            JOIN twenty_mall_account ca ON ca.id = o.consumer_account_id
+            JOIN twenty_mall_account ma ON ma.id = o.merchant_account_id
+            LEFT JOIN platform_account_binding cb ON cb.secondary_account_no = ca.account_no
+                AND cb.secondary_account_role = 'CONSUMER'
+                AND cb.bind_status = 'BOUND'
+                AND cb.deleted = 0
+            LEFT JOIN primary_account cpa ON cpa.id = cb.primary_account_id
+                AND cpa.account_type = 'CONSUMER'
+                AND cpa.deleted = 0
+            LEFT JOIN platform_account_binding mb ON mb.secondary_account_no = ma.account_no
+                AND mb.secondary_account_role = 'MERCHANT'
+                AND mb.bind_status = 'BOUND'
+                AND mb.deleted = 0
+            LEFT JOIN primary_account mpa ON mpa.id = mb.primary_account_id
+                AND mpa.account_type = 'MERCHANT'
+                AND mpa.deleted = 0
+            LEFT JOIN (
+                SELECT aa.*
+                FROM twenty_mall_after_sale aa
+                JOIN (
+                    SELECT order_id, MAX(id) AS max_id
+                    FROM twenty_mall_after_sale
+                    WHERE deleted = 0
+                    GROUP BY order_id
+                ) latest ON latest.max_id = aa.id
+            ) a ON a.order_id = o.id
+            WHERE o.order_no = ? AND c.deleted = 0 AND o.deleted = 0
+            LIMIT 1
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new DemoConversation(
+            rs.getLong("id"),
+            rs.getString("conversation_no"),
+            rs.getString("order_no"),
+            rs.getString("product_name"),
+            rs.getString("consumer_account_no"),
+            rs.getString("consumer_primary_account_no"),
+            rs.getString("merchant_account_no"),
+            rs.getString("merchant_primary_account_no"),
+            rs.getString("merchant_name"),
+            afterSaleStatusText(rs.getString("after_sale_status")),
+            rs.getString("status"),
+            rs.getString("ai_intent"),
+            rs.getString("last_message"),
+            toLocalDateTime(rs.getTimestamp("last_message_at"))
+        ), orderNo);
+    }
+
+    private List<DemoConversation> queryConversationById(Long conversationId) {
+        String sql = """
+            SELECT c.id, c.conversation_no, o.order_no, i.product_name,
+                   ca.account_no AS consumer_account_no,
+                   cpa.account_no AS consumer_primary_account_no,
+                   ma.account_no AS merchant_account_no,
+                   mpa.account_no AS merchant_primary_account_no,
+                   ma.display_name AS merchant_name,
+                   COALESCE(a.status, o.after_sale_status, 'NONE') AS after_sale_status,
+                   c.status, c.ai_intent, c.last_message, c.last_message_at
+            FROM twenty_mall_conversation c
+            JOIN twenty_mall_order o ON o.id = c.order_id
+            JOIN twenty_mall_order_item i ON i.order_id = o.id AND i.deleted = 0
+            JOIN twenty_mall_account ca ON ca.id = o.consumer_account_id
+            JOIN twenty_mall_account ma ON ma.id = o.merchant_account_id
+            LEFT JOIN platform_account_binding cb ON cb.secondary_account_no = ca.account_no
+                AND cb.secondary_account_role = 'CONSUMER'
+                AND cb.bind_status = 'BOUND'
+                AND cb.deleted = 0
+            LEFT JOIN primary_account cpa ON cpa.id = cb.primary_account_id
+                AND cpa.account_type = 'CONSUMER'
+                AND cpa.deleted = 0
+            LEFT JOIN platform_account_binding mb ON mb.secondary_account_no = ma.account_no
+                AND mb.secondary_account_role = 'MERCHANT'
+                AND mb.bind_status = 'BOUND'
+                AND mb.deleted = 0
+            LEFT JOIN primary_account mpa ON mpa.id = mb.primary_account_id
+                AND mpa.account_type = 'MERCHANT'
+                AND mpa.deleted = 0
+            LEFT JOIN (
+                SELECT aa.*
+                FROM twenty_mall_after_sale aa
+                JOIN (
+                    SELECT order_id, MAX(id) AS max_id
+                    FROM twenty_mall_after_sale
+                    WHERE deleted = 0
+                    GROUP BY order_id
+                ) latest ON latest.max_id = aa.id
+            ) a ON a.order_id = o.id
+            WHERE c.id = ? AND c.deleted = 0 AND o.deleted = 0
+            LIMIT 1
+            """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new DemoConversation(
+            rs.getLong("id"),
+            rs.getString("conversation_no"),
+            rs.getString("order_no"),
+            rs.getString("product_name"),
+            rs.getString("consumer_account_no"),
+            rs.getString("consumer_primary_account_no"),
+            rs.getString("merchant_account_no"),
+            rs.getString("merchant_primary_account_no"),
+            rs.getString("merchant_name"),
+            afterSaleStatusText(rs.getString("after_sale_status")),
+            rs.getString("status"),
+            rs.getString("ai_intent"),
+            rs.getString("last_message"),
+            toLocalDateTime(rs.getTimestamp("last_message_at"))
+        ), conversationId);
+    }
+
+    private void createTwentyMallConversation(String orderNo) {
+        String sql = """
+            INSERT INTO twenty_mall_conversation (conversation_no, order_id, status, ai_intent, last_message, last_message_at)
+            SELECT CONCAT('CV', o.order_no), o.id, 'AI_SERVING', '售后咨询',
+                   CONCAT('会话已创建，请描述订单 ', o.order_no, ' 需要咨询的问题。'), NOW()
+            FROM twenty_mall_order o
+            WHERE o.order_no = ? AND o.deleted = 0
+            ON DUPLICATE KEY UPDATE deleted = 0, updated_at = NOW()
+            """;
+        int affected = jdbcTemplate.update(sql, orderNo);
+        if (affected == 0) {
+            throw new IllegalArgumentException("Order not found: " + orderNo);
+        }
+        DemoConversation conversation = loadConversationByOrderNo(orderNo);
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(1) FROM twenty_mall_chat_message WHERE conversation_id = ? AND deleted = 0",
+            Integer.class,
+            conversation.id()
+        );
+        if (count == null || count == 0) {
+            insertMessage(conversation, "AI", "您好，我是AI客服，当前正在为你处理订单 " + orderNo + " 的咨询，请描述需要查询或处理的问题。", true);
+        }
+    }
+
+    private DemoMessage insertMessage(DemoConversation conversation, String senderType, String content, boolean aiGenerated) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO twenty_mall_chat_message (conversation_id, sender_type, content, ai_generated)
+            VALUES (?, ?, ?, ?)
+            """,
+            conversation.id(),
+            senderType,
+            content,
+            aiGenerated ? 1 : 0
+        );
+        Long messageId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+        LocalDateTime createdAt = jdbcTemplate.queryForObject(
+            "SELECT created_at FROM twenty_mall_chat_message WHERE id = ?",
+            (rs, rowNum) -> toLocalDateTime(rs.getTimestamp("created_at")),
+            messageId
+        );
+        jdbcTemplate.update(
+            """
+            UPDATE twenty_mall_conversation
+            SET last_message = ?, last_message_at = ?, updated_at = NOW()
+            WHERE id = ?
+            """,
+            content,
+            Timestamp.valueOf(createdAt),
+            conversation.id()
+        );
+        return new DemoMessage(String.valueOf(messageId), senderType, speaker(senderType), content, createdAt);
+    }
+
+    private boolean shouldResumeAiService(DemoConversation conversation) {
+        if (!"AGENT_SERVING".equals(conversation.status())) {
+            return false;
+        }
+        LocalDateTime latestStaffMessageAt = latestStaffMessageAt(conversation.id());
+        LocalDateTime referenceTime = latestStaffMessageAt != null ? latestStaffMessageAt : conversation.lastMessageAt();
+        return referenceTime == null || referenceTime.plusMinutes(3).isBefore(LocalDateTime.now());
+    }
+
+    private LocalDateTime latestStaffMessageAt(Long conversationId) {
+        return jdbcTemplate.query(
+            """
+            SELECT created_at
+            FROM twenty_mall_chat_message
+            WHERE conversation_id = ? AND sender_type = 'STAFF' AND deleted = 0
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (rs, rowNum) -> toLocalDateTime(rs.getTimestamp("created_at")),
+            conversationId
+        ).stream().findFirst().orElse(null);
+    }
+
+    private void resumeAiService(DemoConversation conversation) {
+        jdbcTemplate.update(
+            """
+            UPDATE twenty_mall_conversation
+            SET status = 'AI_SERVING', updated_at = NOW()
+            WHERE id = ? AND deleted = 0
+            """,
+            conversation.id()
+        );
+    }
+
+    private String buildAiReply(DemoConversation conversation, String content) {
+        try {
+            ReplyResponse response = aiService.generateReply(new AiReplyRequest(
+                content,
+                null,
+                "TWENTY_MALL_ORDER",
+                conversation.id(),
+                null,
+                conversation.afterSaleStatus(),
+                null,
+                conversation.conversationNo()
+            ));
+            if (response != null && response.reply() != null && !response.reply().isBlank()) {
+                return response.reply();
+            }
+        } catch (Exception ignored) {
+            // The conversation should remain usable even when the external AI service is offline.
+        }
+        return "AI 服务暂不可用，建议为您转接人工客服继续处理。";
+    }
+
+    private void ensureTwentyMallChatTables() {
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS twenty_mall_conversation (
+                id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                conversation_no VARCHAR(64) NOT NULL UNIQUE,
+                order_id BIGINT NOT NULL UNIQUE,
+                status VARCHAR(32) NOT NULL DEFAULT 'AI_SERVING',
+                ai_intent VARCHAR(64) DEFAULT '售后咨询',
+                last_message VARCHAR(512) DEFAULT NULL,
+                last_message_at DATETIME DEFAULT NULL,
+                transferred_at DATETIME DEFAULT NULL,
+                closed_at DATETIME DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                deleted TINYINT(1) NOT NULL DEFAULT 0,
+                INDEX idx_twenty_mall_conversation_order (order_id),
+                INDEX idx_twenty_mall_conversation_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城客服会话'
+            """);
+        jdbcTemplate.execute("""
+            CREATE TABLE IF NOT EXISTS twenty_mall_chat_message (
+                id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                conversation_id BIGINT NOT NULL,
+                sender_type VARCHAR(32) NOT NULL,
+                message_type VARCHAR(32) NOT NULL DEFAULT 'TEXT',
+                content TEXT,
+                ai_generated TINYINT(1) NOT NULL DEFAULT 0,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                deleted TINYINT(1) NOT NULL DEFAULT 0,
+                INDEX idx_twenty_mall_chat_message_conversation (conversation_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='20商城聊天消息'
+            """);
+    }
+
+    private String afterSaleStatusText(String status) {
+        return switch (status == null ? "" : status) {
+            case "PENDING_REVIEW" -> "待审核";
+            case "PROCESSING" -> "处理中";
+            case "REJECTED" -> "已拒绝";
+            case "COMPLETED" -> "已完成";
+            case "CLOSED" -> "已关闭";
+            case "AFTER_SALE" -> "售后中";
+            default -> "未申请";
+        };
     }
 
     private DemoConversationResponse toConversationResponse(DemoConversation conversation) {
@@ -239,8 +474,11 @@ public class DemoChatStore {
             conversation.id(),
             conversation.conversationNo(),
             conversation.orderNo(),
-            conversation.productName(),
+            cleanProductName(conversation.productName()),
+            conversation.consumerAccountNo(),
+            conversation.consumerPrimaryAccountNo(),
             conversation.merchantAccountNo(),
+            conversation.merchantPrimaryAccountNo(),
             conversation.merchantName(),
             conversation.afterSaleStatus(),
             conversation.status(),
@@ -256,6 +494,17 @@ public class DemoChatStore {
 
     private String formatTime(LocalDateTime value) {
         return value == null ? "" : value.format(DATE_TIME_FORMATTER);
+    }
+
+    private LocalDateTime toLocalDateTime(Timestamp value) {
+        return value == null ? null : value.toLocalDateTime();
+    }
+
+    private String cleanProductName(String productName) {
+        if (productName == null) {
+            return "";
+        }
+        return productName.replaceFirst("^20商城\\s*", "").trim();
     }
 
     private String normalizeSender(String senderType) {
@@ -283,7 +532,10 @@ public class DemoChatStore {
         String conversationNo,
         String orderNo,
         String productName,
+        String consumerAccountNo,
+        String consumerPrimaryAccountNo,
         String merchantAccountNo,
+        String merchantPrimaryAccountNo,
         String merchantName,
         String afterSaleStatus,
         String status,

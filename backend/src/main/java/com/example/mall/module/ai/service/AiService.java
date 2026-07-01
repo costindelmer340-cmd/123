@@ -4,6 +4,7 @@ import com.example.mall.module.ai.dto.AiReplyRequest;
 import com.example.mall.module.ai.dto.AiTextRequest;
 import com.example.mall.module.ai.dto.IntentResponse;
 import com.example.mall.module.ai.dto.ReplyResponse;
+import com.example.mall.module.ai.dto.ReviewAnalysisResponse;
 import com.example.mall.module.ai.dto.SentimentResponse;
 import com.example.mall.module.ai.dto.TicketClassifyResponse;
 import com.example.mall.module.ai.dto.TopicResponse;
@@ -19,4 +20,6 @@ public interface AiService {
     TicketClassifyResponse classifyTicket(AiTextRequest request);
 
     ReplyResponse generateReply(AiReplyRequest request);
+
+    ReviewAnalysisResponse analyzeReview(AiTextRequest request);
 }

@@ -5,6 +5,9 @@ import com.example.mall.common.auth.LoginUser;
 import com.example.mall.common.auth.SecurityUtils;
 import com.example.mall.common.exception.BusinessException;
 import com.example.mall.common.exception.ErrorCode;
+import com.example.mall.module.ai.dto.AiReplyRequest;
+import com.example.mall.module.ai.dto.ReplyResponse;
+import com.example.mall.module.ai.service.AiService;
 import com.example.mall.module.customer.dto.ChatMessageRequest;
 import com.example.mall.module.customer.dto.ChatMessageResponse;
 import com.example.mall.module.customer.dto.ConversationSummaryResponse;
@@ -35,19 +38,22 @@ public class ConversationServiceImpl implements ConversationService {
     private final ServiceEvaluationMapper serviceEvaluationMapper;
     private final MerchantStaffMapper merchantStaffMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final AiService aiService;
 
     public ConversationServiceImpl(
         CustomerConversationMapper conversationMapper,
         ChatMessageMapper chatMessageMapper,
         ServiceEvaluationMapper serviceEvaluationMapper,
         MerchantStaffMapper merchantStaffMapper,
-        SimpMessagingTemplate messagingTemplate
+        SimpMessagingTemplate messagingTemplate,
+        AiService aiService
     ) {
         this.conversationMapper = conversationMapper;
         this.chatMessageMapper = chatMessageMapper;
         this.serviceEvaluationMapper = serviceEvaluationMapper;
         this.merchantStaffMapper = merchantStaffMapper;
         this.messagingTemplate = messagingTemplate;
+        this.aiService = aiService;
     }
 
     @Override
@@ -191,10 +197,7 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     private void sendAiAck(CustomerConversation conversation, String originalContent) {
-        String replyText = "已收到您的消息，我们正在帮您处理，请稍等。";
-        if (originalContent.contains("退") || originalContent.contains("售后")) {
-            replyText = "已收到您的售后咨询，我们会优先核实订单和材料。";
-        }
+        String replyText = buildAiReply(conversation, originalContent);
         ChatMessage aiMessage = new ChatMessage();
         aiMessage.setConversationId(conversation.getId());
         aiMessage.setSenderId(null);
@@ -211,6 +214,27 @@ public class ConversationServiceImpl implements ConversationService {
         conversationMapper.updateById(conversation);
 
         messagingTemplate.convertAndSend("/topic/conversations/" + conversation.getId(), toMessageResponse(aiMessage));
+    }
+
+    private String buildAiReply(CustomerConversation conversation, String originalContent) {
+        try {
+            ReplyResponse response = aiService.generateReply(new AiReplyRequest(
+                originalContent,
+                conversation.getMerchantId(),
+                "CUSTOMER_CONVERSATION",
+                conversation.getId(),
+                null,
+                conversation.getStatus(),
+                null,
+                String.valueOf(conversation.getId())
+            ));
+            if (response != null && response.reply() != null && !response.reply().isBlank()) {
+                return response.reply();
+            }
+        } catch (Exception ignored) {
+            // Keep the chat channel available if the external AI service is temporarily unavailable.
+        }
+        return "AI 服务暂不可用，建议为您转接人工客服继续处理。";
     }
 
     private ConversationSummaryResponse toSummaryResponse(CustomerConversation conversation) {

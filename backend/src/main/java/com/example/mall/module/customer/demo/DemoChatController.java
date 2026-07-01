@@ -52,6 +52,16 @@ public class DemoChatController {
         return ApiResponse.success(chatStore.transferToStaff(orderNo), traceId());
     }
 
+    @PostMapping("/conversations/{orderNo}/end-agent")
+    public ApiResponse<DemoConversationResponse> endAgent(@PathVariable String orderNo) {
+        return ApiResponse.success(chatStore.endAgentService(orderNo), traceId());
+    }
+
+    @PostMapping("/conversations/id/{conversationId}/end-agent")
+    public ApiResponse<DemoConversationResponse> endAgentById(@PathVariable Long conversationId) {
+        return ApiResponse.success(chatStore.endAgentServiceById(conversationId), traceId());
+    }
+
     private String traceId() {
         return String.valueOf(System.currentTimeMillis());
     }
@@ -69,7 +79,10 @@ public class DemoChatController {
         String conversationNo,
         String orderNo,
         String productName,
+        String consumerAccountNo,
+        String consumerPrimaryAccountNo,
         String merchantAccountNo,
+        String merchantPrimaryAccountNo,
         String merchantName,
         String afterSaleStatus,
         String status,

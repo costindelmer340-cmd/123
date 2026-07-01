@@ -21,6 +21,7 @@ class ContextReplyRequest(TextRequest):
     order_status: str | None = None
     after_sale_status: str | None = None
     user_tone: str | None = None
+    session_id: str | None = None
 
 
 class IntentResponse(ApiModel):
@@ -56,3 +57,13 @@ class ReplyResponse(ApiModel):
     intent: str
     confidence: float
     suggestions: list[str]
+
+
+class ReviewAnalysisResponse(ApiModel):
+    sentiment: str
+    sentiment_score: float
+    topics: list[str]
+    keywords: list[str]
+    risk_level: str
+    summary: str
+    suggestion: str

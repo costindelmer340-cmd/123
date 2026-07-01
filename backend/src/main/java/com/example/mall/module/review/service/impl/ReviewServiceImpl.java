@@ -7,8 +7,6 @@ import com.example.mall.common.exception.BusinessException;
 import com.example.mall.common.exception.ErrorCode;
 import com.example.mall.common.response.PageResponse;
 import com.example.mall.module.ai.dto.AiTextRequest;
-import com.example.mall.module.ai.dto.SentimentResponse;
-import com.example.mall.module.ai.dto.TopicResponse;
 import com.example.mall.module.ai.service.AiService;
 import com.example.mall.module.review.dto.ReviewAnalysisResponse;
 import com.example.mall.module.review.dto.ReviewAppendResponse;
@@ -80,12 +78,11 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional
-    public ReviewAnalysisResponse analyzeReview(Long reviewId) {
+    public com.example.mall.module.review.dto.ReviewAnalysisResponse analyzeReview(Long reviewId) {
         Review review = requireMerchantReview(reviewId);
         String content = review.getContent() == null ? "" : review.getContent();
         AiTextRequest aiRequest = new AiTextRequest(content, review.getMerchantId(), "REVIEW", review.getId());
-        SentimentResponse sentiment = aiService.analyzeSentiment(aiRequest);
-        TopicResponse topic = aiService.extractTopic(aiRequest);
+        com.example.mall.module.ai.dto.ReviewAnalysisResponse aiResponse = aiService.analyzeReview(aiRequest);
 
         ReviewAnalysis analysis = reviewAnalysisMapper.selectOne(
             new LambdaQueryWrapper<ReviewAnalysis>()
@@ -96,12 +93,12 @@ public class ReviewServiceImpl implements ReviewService {
             analysis = new ReviewAnalysis();
             analysis.setReviewId(review.getId());
         }
-        analysis.setSentiment(sentiment.sentiment());
-        analysis.setSentimentScore(BigDecimal.valueOf(sentiment.score()));
-        analysis.setTopics(toJsonArray(topic.topics()));
-        analysis.setKeywords(toJsonArray(topic.keywords()));
-        analysis.setRiskLevel(sentiment.riskLevel());
-        analysis.setSummary(sentiment.summary() + " " + topic.summary());
+        analysis.setSentiment(aiResponse.sentiment());
+        analysis.setSentimentScore(BigDecimal.valueOf(aiResponse.sentimentScore()));
+        analysis.setTopics(toJsonArray(aiResponse.topics()));
+        analysis.setKeywords(toJsonArray(aiResponse.keywords()));
+        analysis.setRiskLevel(aiResponse.riskLevel());
+        analysis.setSummary(aiResponse.summary());
         analysis.setAnalyzedAt(LocalDateTime.now());
         if (analysis.getId() == null) {
             reviewAnalysisMapper.insert(analysis);
